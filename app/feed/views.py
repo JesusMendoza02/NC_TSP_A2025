@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from django.urls import reverse
+from datetime import datetime
 from .forms import FormResena
 from .models import Resena, Fotografia, Publicacion
 
@@ -25,13 +27,29 @@ def publicar_resena(request):
                 actualmente = form_resena.cleaned_data.get('actualmente_en_lugar')
                 
                 if actualmente == 'si':
-                    resena.fecha_visita = timezone.now()  # Con hora actual
+                    # Usar la hora actual con timezone
+                    resena.fecha_visita = timezone.now()
                 else:
                     fecha_manual = form_resena.cleaned_data.get('fecha_visita_manual')
-                    resena.fecha_visita = fecha_manual if fecha_manual else timezone.now()
+                    if fecha_manual:
+                        # Asegurar que tenga timezone
+                        if timezone.is_naive(fecha_manual):
+                            resena.fecha_visita = timezone.make_aware(fecha_manual)
+                        else:
+                            resena.fecha_visita = fecha_manual
+                    else:
+                        resena.fecha_visita = timezone.now()
+                
+                # Debug: imprimir la fecha antes de guardar
+                print(f"Fecha a guardar: {resena.fecha_visita}")
+                print(f"Tipo: {type(resena.fecha_visita)}")
                 
                 # Guardar la reseña en la base de datos
                 resena.save()
+                
+                # Debug: verificar qué se guardó
+                resena.refresh_from_db()
+                print(f"Fecha guardada en DB: {resena.fecha_visita}")
                 
                 # Guardar las fotografías asociadas
                 for foto in fotos:
@@ -42,10 +60,16 @@ def publicar_resena(request):
                     turista=request.user.datos,  
                     resena=resena
                 )
+                
+                # Mensaje de éxito ANTES de redirigir
+                messages.success(request, "¡Reseña publicada con éxito!")
                 return redirect('inicio:inicio')
                 
             except Exception as e:
                 messages.error(request, f"Error al publicar la reseña: {str(e)}")
+                print(f"Error completo: {e}")
+                import traceback
+                traceback.print_exc()
     else:
         form_resena = FormResena()
     
