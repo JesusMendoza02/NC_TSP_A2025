@@ -39,12 +39,10 @@ def publicar_resena(request):
                 
                 # Crear la publicación asociada al turista
                 Publicacion.objects.create(
-                    turista=request.user.datos,  # Usar 'datos' según tu modelo
+                    turista=request.user.datos,  
                     resena=resena
                 )
-                
-                messages.success(request, "¡Reseña publicada con éxito!")
-                return redirect('inicio')
+                return redirect('inicio:inicio')
                 
             except Exception as e:
                 messages.error(request, f"Error al publicar la reseña: {str(e)}")
