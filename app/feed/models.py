@@ -17,7 +17,7 @@ class Resena(models.Model):
         related_name='resenas'
     )
     descripcion = models.TextField()
-    fecha_visita = models.DateField()
+    fecha_visita = models.DateTimeField()
     calificacion = models.PositiveSmallIntegerField() 
 
     def __str__(self):

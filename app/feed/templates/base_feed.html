@@ -107,8 +107,8 @@
     <!-- Sidebar izquierda -->
     <div class="sidebar">
         <h2>Meridian</h2>
-        <a href="#"><i class="bi bi-house-door"></i> Inicio</a>       
-        <a href="#"><i class="bi bi-plus-circle"></i> Publicar</a>
+        <a href="{% url 'inicio:inicio' %}"><i class="bi bi-house-door"></i> Inicio</a>       
+        <a href="{% url 'inicio:publicar' %}"><i class="bi bi-plus-circle"></i> Publicar</a>
         <a href="#"><i class="bi bi-person"></i> Perfil</a>
         <a href="{% url 'cerrar_sesion' %}"><i class="bi bi-box-arrow-right"></i> Cerrar sesión</a>
     </div>
