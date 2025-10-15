@@ -1,86 +1,103 @@
 {% extends "base_feed.html" %}
-
+{% block titulo %}Feed de Reseñas{% endblock %}
+{% load static %}
 {% block contenido %}
-
-<!-- Mensajes de notificación -->
-{% if messages %}
-    <div class="messages-container mb-4">
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" 
-                 role="alert"
-                 style="border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                <strong>
-                    {% if message.tags == 'success' %}
-                        ✓
-                    {% elif message.tags == 'error' %}
-                        ✕
-                    {% elif message.tags == 'warning' %}
-                        ⚠
-                    {% else %}
-                        ℹ
-                    {% endif %}
-                </strong>
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
-    </div>
-{% endif %}
-
-<!-- Aquí irá tu contenido del feed -->
 <div class="container">
-    <h2 style="color: #3f3d56; margin-bottom: 2rem;">Feed de Reseñas</h2>
-    
-    <!-- Aquí agregarás las publicaciones más adelante -->
-    <div class="feed-posts">
-        <!-- Las reseñas aparecerán aquí -->
-    </div>
+    <h2 class="text-center mb-4" style="color: #3f3d56;">Inicio</h2>
+
+    {% if publicaciones %}
+        {% for pub in publicaciones %}
+        <div class="card mb-4 shadow-sm p-4">
+            <div class="row">
+                <!-- COLUMNA IZQUIERDA -->
+                <div class="col-md-7">
+                    <div class="d-flex align-items-center mb-3">
+                        <!-- Foto de perfil o icono por defecto -->
+                        {% if pub.turista.foto_perfil %}
+                            <img src="{{ pub.turista.foto_perfil.url }}" alt="Perfil" class="rounded-circle me-3 shadow-sm" width="60" height="60">
+                        {% else %}
+                            <i class="bi bi-person-circle me-3" style="font-size:60px; color:#3f3d56;"></i>
+                        {% endif %}
+
+                        <div>
+                            <h5 class="mb-0" style="color:#3f3d56;">{{ pub.turista.usuario.username }}</h5>
+                            <small class="text-muted">{{ pub.fecha_publicacion|date:"d M Y, H:i" }}</small>
+                        </div>
+                    </div>
+
+                    <!-- Lugar y descripción -->
+                    <h6 style="color:#6C63FF;">{{ pub.resena.lugar_turistico.nombre }}</h6>
+                    <p class="text-muted mb-2">{{ pub.resena.lugar_turistico.ubicacion }}</p>
+                    <p style="color:#333;">{{ pub.resena.descripcion }}</p>
+
+                    <!-- Calificación -->
+                    <div class="mb-3">
+                        <span class="fw-bold" style="color:#6C63FF;">Calificación:</span>
+                        <span class="ms-2" style="font-size: 1.2rem; color:#3f3d56;">
+                            {{ pub.resena.calificacion }} <i class="bi bi-star-fill text-warning"></i>
+                        </span>
+                    </div>
+
+                    <!-- Botón Like -->
+                    <div class="d-flex align-items-center">
+                        <button class="btn-like btn btn-outline-primary btn-sm me-2" 
+                                data-pub-id="{{ pub.id }}">
+                            <i class="bi bi-hand-thumbs-up"></i> 
+                        </button>
+                        <small class="text-muted like-count">{{ pub.reaccion }} Likes</small>
+                    </div>
+                </div>
+
+                <!-- COLUMNA DERECHA (Carrusel de imágenes) -->
+                <div class="col-md-5">
+                    {% if pub.resena.fotografias.all %}
+                    <div id="carousel{{ forloop.counter }}" class="carousel slide" data-bs-ride="carousel">
+                        <div class="carousel-inner rounded-3 shadow-sm">
+                            {% for foto in pub.resena.fotografias.all %}
+                            <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                                <img src="{{ foto.fotografia.url }}" class="d-block w-100" alt="Foto reseña" style="border-radius:15px; object-fit:cover; height:300px;">
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#carousel{{ forloop.counter }}" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#carousel{{ forloop.counter }}" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info text-center" style="border-radius:12px;">
+            No hay publicaciones aún. ¡Sé el primero en compartir tu experiencia!
+        </div>
+    {% endif %}
 </div>
 
+<!-- Estilos -->
 <style>
-.alert {
-    font-weight: 500;
-    animation: slideDown 0.4s ease-out;
+.card {
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease;
 }
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.card:hover {
+    transform: translateY(-3px);
 }
-
-.alert-success {
-    background-color: #d4edda;
-    border-color: #c3e6cb;
-    color: #155724;
+.btn-like.liked {
+    background-color: #6C63FF;
+    color: #fff;
+    border-color: #6C63FF;
 }
-
-.alert-error,
-.alert-danger {
-    background-color: #f8d7da;
-    border-color: #f5c6cb;
-    color: #721c24;
-}
-
-.alert-warning {
-    background-color: #fff3cd;
-    border-color: #ffeaa7;
-    color: #856404;
-}
-
-.alert-info {
-    background-color: #d1ecf1;
-    border-color: #bee5eb;
-    color: #0c5460;
-}
-
-.btn-close:focus {
-    box-shadow: none;
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+    background-color: rgba(108,99,255,0.6);
+    border-radius: 50%;
 }
 </style>
 
