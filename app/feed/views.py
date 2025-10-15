@@ -6,6 +6,8 @@ from django.urls import reverse
 from datetime import datetime
 from .forms import FormResena
 from .models import Resena, Fotografia, Publicacion
+from django.http import JsonResponse
+import json
 
 @login_required
 def publicar_resena(request):
@@ -79,8 +81,16 @@ def eliminar_resena(request):
     return render(request, 'login.html')
 
 def visualizar_feed(request):
-    return render(request, 'feed.html')
+    # Obtener todas las publicaciones más recientes primero
+    publicaciones = (
+        Publicacion.objects
+        .select_related('turista', 'resena__lugar_turistico')
+        .prefetch_related('resena__fotografias')
+        .order_by('-fecha_publicacion')
+    )
+    
+    return render(request, 'feed.html', {'publicaciones': publicaciones})
 
 def dar_like(request):
-    return render(request, 'login.html')
+        return render(request, 'login.html')
 
