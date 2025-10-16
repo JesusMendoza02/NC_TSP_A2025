@@ -1,3 +1,4 @@
+
 from django.db import models
 from usuarios.models import Turista
 
@@ -41,6 +42,10 @@ class Publicacion(models.Model):
 
     def __str__(self):
         return f"Publicación de {self.turista} ({self.resena.lugar_turistico})"
+    
+    @property
+    def total_likes(self):
+        return self.likes.count()
 
 
 
@@ -54,3 +59,15 @@ class Fotografia(models.Model):
 
     def __str__(self):
         return f"Foto de la reseña {self.resena.id}"
+    
+
+class Like(models.Model):
+    publicacion = models.ForeignKey(Publicacion, on_delete=models.CASCADE, related_name='likes')
+    turista = models.ForeignKey(Turista, on_delete=models.CASCADE)
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('publicacion', 'turista')  # Evita likes duplicados
+
+    def __str__(self):
+        return f"{self.turista} dio like a {self.publicacion}"
