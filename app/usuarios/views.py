@@ -53,5 +53,34 @@ def cerrar_sesion(request):
     messages.info(request, 'Has cerrado sesión correctamente.')
     return redirect('login')
 
+from django.contrib.auth import authenticate, login, logout
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from feed.models import Publicacion # 👈 IMPORTANTE: Añade esta importación
+
+# ... (otras vistas)
+
+@login_required
 def mostrar_perfil_usuario(request):
-    return render(request, 'login.html')
+    """Muestra el perfil del usuario logueado y sus publicaciones."""
+    
+    # 1. Obtener el objeto Turista del usuario logueado
+    # El modelo User tiene un related_name='datos' al Turista (request.user.datos)
+    turista = request.user.datos
+
+    # 2. Obtener las publicaciones del usuario, optimizando las consultas.
+    publicaciones = (
+        Publicacion.objects
+        .filter(turista=turista) # 👈 Filtrar solo las publicaciones del Turista actual
+        .select_related('resena__lugar_turistico')
+        .prefetch_related('resena__fotografias')
+        .order_by('-fecha_publicacion')
+    )
+
+    context = {
+        'turista': turista,
+        'usuario': request.user,
+        'publicaciones': publicaciones,
+    }
+    
+    return render(request, 'perfil_usuario.html', context)
