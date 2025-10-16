@@ -7,7 +7,10 @@ from datetime import datetime
 from .forms import FormResena
 from .models import Resena, Fotografia, Publicacion
 from django.http import JsonResponse
-import json
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from .models import Publicacion, Like
 
 @login_required
 def publicar_resena(request):
@@ -110,17 +113,6 @@ def visualizar_feed(request):
 
 
 
-
-
-#def dar_like(request):
- #       return render(request, 'login.html')
-
-
-from django.views.decorators.http import require_POST
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from .models import Publicacion, Like
-
 @login_required
 @require_POST
 def dar_like(request):
@@ -132,18 +124,14 @@ def dar_like(request):
         return JsonResponse({'error': 'Publicación no encontrada.'}, status=404)
 
     turista = request.user.datos
-
-    # get_or_create: si ya existe el like, lo obtiene; si no, lo crea
     like, created = Like.objects.get_or_create(publicacion=publicacion, turista=turista)
 
     if not created:
-        # Si ya existía, se elimina el like (toggle)
         like.delete()
         liked = False
     else:
         liked = True
 
-    # Actualizar contador en el modelo Publicacion
     publicacion.reaccion = publicacion.likes.count()
     publicacion.save(update_fields=['reaccion'])
 
