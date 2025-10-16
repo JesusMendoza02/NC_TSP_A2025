@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
@@ -80,11 +80,21 @@ def publicar_resena(request):
 
     return render(request, 'publicacion_form.html', {'form_resena': form_resena})
 
-def eliminar_resena(request):
-    return render(request, 'login.html')
+#Permite al usuario eliminar su propia publicación.
+@login_required
+def eliminar_publicacion(request, publicacion_id):
+    publicacion = get_object_or_404(Publicacion, id=publicacion_id)
 
+    if publicacion.turista.usuario != request.user:
+        messages.error(request, "No tienes permiso para eliminar esta publicación.")
+        return redirect('perfil_usuario')
 
+    if request.method == 'POST':
+        publicacion.delete()
+        messages.success(request, "Publicación eliminada con éxito.")
+        return redirect('perfil_usuario') 
 
+    return redirect('perfil_usuario')
 
 def visualizar_feed(request):
     # Obtener todas las publicaciones más recientes primero

@@ -5,4 +5,5 @@ urlpatterns = [
     path('', views.inicio_sesion, name='login'),  # página principal
     path('registrarse/', views.registrar_usuario, name='registrar'),
     path('cerrar/', views.cerrar_sesion, name='cerrar_sesion'),
+    path('perfil/', views.mostrar_perfil_usuario, name='perfil_usuario'),
 ]

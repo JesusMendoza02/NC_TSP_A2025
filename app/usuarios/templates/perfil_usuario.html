@@ -1,0 +1,99 @@
+{% extends 'base_feed.html' %} 
+{% load static %}
+
+{% block contenido %} 
+    
+    <h1 class="page-title">Perfil</h1>
+
+<div class="profile-header text-center mb-5 p-4">
+    {% if turista.foto_perfil %}
+        <img src="{{ turista.foto_perfil.url }}" alt="Foto de perfil" class="profile-pic mb-3">
+    {% else %}
+        <i class="bi bi-person-circle default-profile-icon mb-3"></i>
+    {% endif %}
+    
+    <h2 class="username mb-0">{{ usuario.username }}</h2>
+    
+    </div>
+
+    <hr class="my-4">
+
+    <h2 class="section-title text-center mb-4">Mis Publicaciones ({{ publicaciones|length }})</h2>
+
+    {% if publicaciones %}
+        
+        {% for publicacion in publicaciones %}
+        <div class="card mb-4 shadow-sm p-4">
+            <div class="row">
+                
+                <div class="col-md-7">
+                    
+                    <h5 class="card-title publication-place mb-2">
+                        <i class="bi bi-geo-alt-fill me-2" style="color: #FF6584;"></i> {{ publicacion.resena.lugar_turistico.nombre }}
+                        <small class="text-muted d-block fw-normal">{{ publicacion.resena.lugar_turistico.ubicacion }}</small>
+                    </h5>
+
+                    <p class="card-text publication-description">{{ publicacion.resena.descripcion }}</p>
+
+                    <div class="mb-3">
+                        <span class="fw-bold" style="color: #6C63FF;">Calificación:</span>
+                        <span class="ms-2" style="font-size: 1.2rem; color: #3f3d56;">
+                            {{ publicacion.resena.calificacion }} <i class="bi bi-star-fill text-warning"></i>
+                        </span>
+                    </div>
+                    
+                    <small class="text-muted publication-meta d-block">
+                        Publicado el: {{ publicacion.fecha_publicacion|date:"d M Y, H:i" }} | 👍 {{ publicacion.total_likes }} Likes
+                    </small>
+                    
+                </div>
+
+                <div class="col-md-5 position-relative"> {% if publicacion.resena.fotografias.all %}
+                    
+                    <div class="dropdown action-menu-floating"> <button class="btn btn-sm action-menu-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-three-dots-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <form method="post" action="{% url 'inicio:eliminar_publicacion' publicacion.id %}" onsubmit="return confirm('¿Estás seguro de que quieres eliminar esta reseña? Esta acción no se puede deshacer');" class="m-0">
+                                    {% csrf_token %}
+                                    <button type="submit" class="dropdown-item delete-dropdown-item">
+                                        <i class="bi bi-trash me-2"></i> Eliminar
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                    <div id="carousel-profile-{{ forloop.counter }}" class="carousel slide" data-bs-ride="carousel">
+                        <div class="carousel-indicators">
+                            {% for foto in publicacion.resena.fotografias.all %}
+                            <button type="button" data-bs-target="#carousel-profile-{{ forloop.parentloop.counter }}" data-bs-slide-to="{{ forloop.counter0 }}" class="{% if forloop.first %}active{% endif %}" aria-current="{% if forloop.first %}true{% endif %}" aria-label="Slide {{ forloop.counter }}"></button>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="carousel-inner rounded-3 shadow-sm">
+                            {% for foto in publicacion.resena.fotografias.all %}
+                            <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                                <img src="{{ foto.fotografia.url }}" class="d-block w-100" alt="Foto reseña" style="border-radius:15px; object-fit:cover; height:300px;">
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <button class="carousel-control-prev" type="button" data-bs-target="#carousel-profile-{{ forloop.counter }}" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#carousel-profile-{{ forloop.counter }}" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        </button>
+                        
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        
+    {% else %}
+        {% endif %}
+
+{% endblock contenido %}

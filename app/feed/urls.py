@@ -9,4 +9,5 @@ urlpatterns = [
     path('publicar/', views.publicar_resena, name='publicar'),
     path('feed/', views.visualizar_feed, name='feed'),
     path('like/', views.dar_like, name='dar_like'),
+    path('eliminar/<int:publicacion_id>/', views.eliminar_publicacion, name='eliminar_publicacion'),
 ]
