@@ -2,8 +2,10 @@
 {% block titulo %}Feed de Reseñas{% endblock %}
 {% load static %}
 {% block contenido %}
+{% csrf_token %}
 <div class="container">
-    <h2 class="text-center mb-4" style="color: #3f3d56;">Inicio</h2>
+    <h2 class="text-center mb-4" style="color: 
+#3f3d56;">Inicio</h2>
 
     {% if publicaciones %}
         {% for pub in publicaciones %}
@@ -16,36 +18,43 @@
                         {% if pub.turista.foto_perfil %}
                             <img src="{{ pub.turista.foto_perfil.url }}" alt="Perfil" class="rounded-circle me-3 shadow-sm" width="60" height="60">
                         {% else %}
-                            <i class="bi bi-person-circle me-3" style="font-size:60px; color:#3f3d56;"></i>
+                            <i class="bi bi-person-circle me-3" style="font-size:60px; color:
+#3f3d56;"></i>
                         {% endif %}
 
                         <div>
-                            <h5 class="mb-0" style="color:#3f3d56;">{{ pub.turista.usuario.username }}</h5>
+                            <h5 class="mb-0" style="color:
+#3f3d56;">{{ pub.turista.usuario.username }}</h5>
                             <small class="text-muted">{{ pub.fecha_publicacion|date:"d M Y, H:i" }}</small>
                         </div>
                     </div>
 
                     <!-- Lugar y descripción -->
-                    <h6 style="color:#6C63FF;">{{ pub.resena.lugar_turistico.nombre }}</h6>
+                    <h6 style="color:
+#6C63FF;">{{ pub.resena.lugar_turistico.nombre }}</h6>
                     <p class="text-muted mb-2">{{ pub.resena.lugar_turistico.ubicacion }}</p>
                     <p style="color:#333;">{{ pub.resena.descripcion }}</p>
 
                     <!-- Calificación -->
                     <div class="mb-3">
-                        <span class="fw-bold" style="color:#6C63FF;">Calificación:</span>
-                        <span class="ms-2" style="font-size: 1.2rem; color:#3f3d56;">
+                        <span class="fw-bold" style="color:
+#6C63FF;">Calificación:</span>
+                        <span class="ms-2" style="font-size: 1.2rem; color:
+#3f3d56;">
                             {{ pub.resena.calificacion }} <i class="bi bi-star-fill text-warning"></i>
                         </span>
                     </div>
 
                     <!-- Botón Like -->
                     <div class="d-flex align-items-center">
-                        <button class="btn-like btn btn-outline-primary btn-sm me-2" 
+                        <button class="btn-like btn btn-outline-primary btn-sm me-2 
+                        {% if pub.id in likes_usuario %}liked{% endif %}" 
                                 data-pub-id="{{ pub.id }}">
                             <i class="bi bi-hand-thumbs-up"></i> 
-                        </button>
+                </button>
                         <small class="text-muted like-count">{{ pub.reaccion }} Likes</small>
                     </div>
+
                 </div>
 
                 <!-- COLUMNA DERECHA (Carrusel de imágenes) -->
@@ -90,9 +99,11 @@
     transform: translateY(-3px);
 }
 .btn-like.liked {
-    background-color: #6C63FF;
+    background-color: 
+#6C63FF;
     color: #fff;
-    border-color: #6C63FF;
+    border-color: 
+#6C63FF;
 }
 .carousel-control-prev-icon,
 .carousel-control-next-icon {
@@ -100,5 +111,36 @@
     border-radius: 50%;
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    document.querySelectorAll('.btn-like').forEach(button => {
+        button.addEventListener('click', () => {
+            const pubId = button.dataset.pubId;
+            fetch("{% url 'feed:dar_like' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({ 'pub_id': pubId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const likeCount = button.parentElement.querySelector('.like-count');
+                likeCount.textContent = `${data.total_likes} Likes`;
+
+                if (data.liked) {
+                    button.classList.add('liked');
+                } else {
+                    button.classList.remove('liked');
+                }
+            });
+        });
+    });
+});
+</script>
 
 {% endblock %}
