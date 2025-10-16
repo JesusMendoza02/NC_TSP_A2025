@@ -4,54 +4,49 @@
 {% block contenido %}
 {% csrf_token %}
 <div class="container">
-    <h2 class="text-center mb-4" style="color: 
-#3f3d56;">Inicio</h2>
+    <h2 class="text-center mb-4 page-title-feed">Inicio</h2>
 
     {% if publicaciones %}
         {% for pub in publicaciones %}
-        <div class="card mb-4 shadow-sm p-4">
-            <div class="row">
+        <div class="card mb-4 shadow-sm p-4 feed-card">
+            <div class="row g-3">
                 <!-- COLUMNA IZQUIERDA -->
                 <div class="col-md-7">
-                    <div class="d-flex align-items-center mb-3">
+                    <div class="d-flex align-items-center mb-3 user-header">
                         <!-- Foto de perfil o icono por defecto -->
                         {% if pub.turista.foto_perfil %}
-                            <img src="{{ pub.turista.foto_perfil.url }}" alt="Perfil" class="rounded-circle me-3 shadow-sm" width="60" height="60">
+                            <img src="{{ pub.turista.foto_perfil.url }}" alt="Perfil" class="rounded-circle me-3 shadow-sm profile-img-feed" width="60" height="60">
                         {% else %}
-                            <i class="bi bi-person-circle me-3" style="font-size:60px; color:
-#3f3d56;"></i>
+                            <i class="bi bi-person-circle me-3 default-icon-feed"></i>
                         {% endif %}
 
                         <div>
-                            <h5 class="mb-0" style="color:
-#3f3d56;">{{ pub.turista.usuario.username }}</h5>
-                            <small class="text-muted">{{ pub.fecha_publicacion|date:"d M Y, H:i" }}</small>
+                            <h5 class="mb-0 username-feed">{{ pub.turista.usuario.username }}</h5>
+                            <small class="text-muted date-feed">{{ pub.fecha_publicacion|date:"d M Y, H:i" }}</small>
                         </div>
                     </div>
 
                     <!-- Lugar y descripción -->
-                    <h6 style="color:
-#6C63FF;">{{ pub.resena.lugar_turistico.nombre }}</h6>
-                    <p class="text-muted mb-2">{{ pub.resena.lugar_turistico.ubicacion }}</p>
-                    <p style="color:#333;">{{ pub.resena.descripcion }}</p>
+                    <h6 class="place-name-feed">{{ pub.resena.lugar_turistico.nombre }}</h6>
+                    <p class="text-muted mb-2 location-feed">{{ pub.resena.lugar_turistico.ubicacion }}</p>
+                    <p class="description-feed">{{ pub.resena.descripcion }}</p>
 
                     <!-- Calificación -->
-                    <div class="mb-3">
-                        <span class="fw-bold" style="color:
-#6C63FF;">Calificación:</span>
-                        <span class="ms-2" style="font-size: 1.2rem; color:
-#3f3d56;">
+                    <div class="mb-3 rating-section">
+                        <span class="fw-bold rating-label">Calificación:</span>
+                        <span class="ms-2 rating-value">
                             {{ pub.resena.calificacion }} <i class="bi bi-star-fill text-warning"></i>
                         </span>
                     </div>
 
                     <!-- Botón Like -->
-                    <div class="d-flex align-items-center">
+                    <div class="d-flex align-items-center like-section">
                         <button class="btn-like btn btn-outline-primary btn-sm me-2 
                         {% if pub.id in likes_usuario %}liked{% endif %}" 
                                 data-pub-id="{{ pub.id }}">
                             <i class="bi bi-hand-thumbs-up"></i> 
-                </button>
+                            <span class="like-text">Me gusta</span>
+                        </button>
                         <small class="text-muted like-count">{{ pub.reaccion }} Likes</small>
                     </div>
 
@@ -60,11 +55,11 @@
                 <!-- COLUMNA DERECHA (Carrusel de imágenes) -->
                 <div class="col-md-5">
                     {% if pub.resena.fotografias.all %}
-                    <div id="carousel{{ forloop.counter }}" class="carousel slide" data-bs-ride="carousel">
+                    <div id="carousel{{ forloop.counter }}" class="carousel slide carousel-feed" data-bs-ride="carousel">
                         <div class="carousel-inner rounded-3 shadow-sm">
                             {% for foto in pub.resena.fotografias.all %}
                             <div class="carousel-item {% if forloop.first %}active{% endif %}">
-                                <img src="{{ foto.fotografia.url }}" class="d-block w-100" alt="Foto reseña" style="border-radius:15px; object-fit:cover; height:300px;">
+                                <img src="{{ foto.fotografia.url }}" class="d-block w-100 carousel-image" alt="Foto reseña">
                             </div>
                             {% endfor %}
                         </div>
@@ -81,36 +76,11 @@
         </div>
         {% endfor %}
     {% else %}
-        <div class="alert alert-info text-center" style="border-radius:12px;">
+        <div class="alert alert-info text-center empty-alert">
             No hay publicaciones aún. ¡Sé el primero en compartir tu experiencia!
         </div>
     {% endif %}
 </div>
-
-<!-- Estilos -->
-<style>
-.card {
-    border-radius: 16px;
-    background: #fff;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-    transition: transform 0.2s ease;
-}
-.card:hover {
-    transform: translateY(-3px);
-}
-.btn-like.liked {
-    background-color: 
-#6C63FF;
-    color: #fff;
-    border-color: 
-#6C63FF;
-}
-.carousel-control-prev-icon,
-.carousel-control-next-icon {
-    background-color: rgba(108,99,255,0.6);
-    border-radius: 50%;
-}
-</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -137,6 +107,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     button.classList.remove('liked');
                 }
+            })
+            .catch(error => {
+                console.error('Error al dar like:', error);
             });
         });
     });

@@ -2,56 +2,58 @@
 {% block titulo %}Registro{% endblock %}
 
 {% block contenido %}
-<div class="container mt-4" style="max-width: 500px;">
-    <h2 class="text-center mb-4" style="color: #3f3d56;">Crea tu cuenta</h2>
+<div class="register-container">
+    <h2 class="text-center mb-4 auth-title">Crea tu cuenta</h2>
 
     {% if messages %}
         {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} text-center" style="border-radius: 10px;">
+            <div class="alert alert-{{ message.tags }} text-center auth-alert">
                 {{ message }}
             </div>
         {% endfor %}
     {% endif %}
 
-    <form method="post" action="{% url 'registrar' %}">
+    <form method="post" action="{% url 'registrar' %}" class="auth-form">
         {% csrf_token %}
 
         <!-- Formulario Usuario -->
-        <h5 style="color: #3f3d56;">Datos de Usuario</h5>
+        <h5 class="auth-section-title">Datos de Usuario</h5>
         {{ user_form.non_field_errors }}
         {% for field in user_form %}
             <div class="mb-3">
                 {{ field.label_tag }}
-                {{ field }}
+                <div class="auth-field-wrapper">
+                    {{ field }}
+                </div>
                 {% if field.errors %}
-                    <div class="text-danger">{{ field.errors|striptags }}</div>
+                    <div class="text-danger auth-error">{{ field.errors|striptags }}</div>
                 {% endif %}
             </div>
         {% endfor %}
 
         <!-- Formulario Turista -->
-        <h5 style="color: #3f3d56;">Fecha de nacimiento</h5>
+        <h5 class="auth-section-title">Fecha de nacimiento</h5>
         {{ turista_form.non_field_errors }}
         {% for field in turista_form %}
             <div class="mb-3">
-                {{ field }}
+                <div class="auth-field-wrapper">
+                    {{ field }}
+                </div>
                 {% if field.errors %}
-                    <div class="text-danger">{{ field.errors|striptags }}</div>
+                    <div class="text-danger auth-error">{{ field.errors|striptags }}</div>
                 {% endif %}
             </div>
         {% endfor %}
 
         <!-- Botón -->
         <div class="d-grid gap-2 mb-3">
-            <button type="submit" class="btn"
-                style="background-color: #3f3d56; color: #ffffff; border-radius: 12px; padding: 0.8rem;
-                       font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,0.15); transition: all 0.3s ease;">
+            <button type="submit" class="btn auth-btn-submit">
                 Registrarse
             </button>
         </div>
 
         <div class="text-center">
-            <a class="btn-link" href="{% url 'login' %}" style="color:#3f3d56;">
+            <a class="auth-link" href="{% url 'login' %}">
                 ¿Ya tienes cuenta? Inicia sesión
             </a>
         </div>
