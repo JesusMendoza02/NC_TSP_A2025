@@ -10,6 +10,16 @@
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 <body>
+    {% if messages %}
+        <div class="container mt-3">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show text-center" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+            {% endfor %}
+        </div>
+        {% endif %}
     <!-- Header móvil -->
     <div class="mobile-header">
         <h2>Meridian</h2>

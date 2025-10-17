@@ -3,14 +3,12 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.urls import reverse
-from datetime import datetime
 from .forms import FormResena
-from .models import Resena, Fotografia, Publicacion
+from .models import Fotografia, Publicacion, Like
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from .models import Publicacion, Like
+
+
 
 @login_required
 def publicar_resena(request):
@@ -96,7 +94,6 @@ def eliminar_publicacion(request, publicacion_id):
 
     return redirect('perfil_usuario')
 
-@login_required
 def visualizar_feed(request):
     # Obtener todas las publicaciones más recientes primero
     publicaciones = (

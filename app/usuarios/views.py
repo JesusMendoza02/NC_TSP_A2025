@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from .forms import FormUser, FormTurista
+from feed.models import Publicacion 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -55,13 +56,6 @@ def cerrar_sesion(request):
     messages.info(request, 'Has cerrado sesión correctamente.')
     return redirect('login')
 
-from django.contrib.auth import authenticate, login, logout
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from feed.models import Publicacion # 👈 IMPORTANTE: Añade esta importación
-
-# ... (otras vistas)
-
 @login_required
 def mostrar_perfil_usuario(request):
     """Muestra el perfil del usuario logueado con paginación (5 publicaciones por página)."""
@@ -78,10 +72,10 @@ def mostrar_perfil_usuario(request):
         .order_by('-fecha_publicacion')
     )
 
-    # 3. Paginación (5 publicaciones por página)
+    # 3. Paginación 
     paginator = Paginator(publicaciones_qs, 5)
     page_number = request.GET.get('page')
-    publicaciones = paginator.get_page(page_number)  # devuelve un objeto Page
+    publicaciones = paginator.get_page(page_number) 
 
     # 4. Contexto
     context = {
