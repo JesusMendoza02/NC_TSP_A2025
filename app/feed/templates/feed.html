@@ -7,74 +7,83 @@
     <h2 class="text-center mb-4 page-title-feed">Inicio</h2>
 
     {% if publicaciones %}
-        {% for pub in publicaciones %}
-        <div class="card mb-4 shadow-sm p-4 feed-card">
-            <div class="row g-3">
-                <!-- COLUMNA IZQUIERDA -->
-                <div class="col-md-7">
-                    <div class="d-flex align-items-center mb-3 user-header">
-                        <!-- Foto de perfil o icono por defecto -->
-                        {% if pub.turista.foto_perfil %}
-                            <img src="{{ pub.turista.foto_perfil.url }}" alt="Perfil" class="rounded-circle me-3 shadow-sm profile-img-feed" width="60" height="60">
-                        {% else %}
-                            <i class="bi bi-person-circle me-3 default-icon-feed"></i>
-                        {% endif %}
+        <div id="feed-container">
+            {% for pub in publicaciones %}
+            <div class="card mb-4 shadow-sm p-4 feed-card feed-item" style="display: {% if forloop.counter <= 10 %}block{% else %}none{% endif %};">
+                <div class="row g-3">
+                    <!-- COLUMNA IZQUIERDA -->
+                    <div class="col-md-7">
+                        <div class="d-flex align-items-center mb-3 user-header">
+                            {% if pub.turista.foto_perfil %}
+                                <img src="{{ pub.turista.foto_perfil.url }}" alt="Perfil" class="rounded-circle me-3 shadow-sm profile-img-feed" width="60" height="60">
+                            {% else %}
+                                <i class="bi bi-person-circle me-3 default-icon-feed"></i>
+                            {% endif %}
 
-                        <div>
-                            <h5 class="mb-0 username-feed">{{ pub.turista.usuario.username }}</h5>
-                            <small class="text-muted date-feed">{{ pub.fecha_publicacion|date:"d M Y, H:i" }}</small>
-                        </div>
-                    </div>
-
-                    <!-- Lugar y descripción -->
-                    <h6 class="place-name-feed">{{ pub.resena.lugar_turistico.nombre }}</h6>
-                    <p class="text-muted mb-2 location-feed">{{ pub.resena.lugar_turistico.ubicacion }}</p>
-                    <p class="description-feed">{{ pub.resena.descripcion }}</p>
-
-                    <!-- Calificación -->
-                    <div class="mb-3 rating-section">
-                        <span class="fw-bold rating-label">Calificación:</span>
-                        <span class="ms-2 rating-value">
-                            {{ pub.resena.calificacion }} <i class="bi bi-star-fill text-warning"></i>
-                        </span>
-                    </div>
-
-                    <!-- Botón Like -->
-                    <div class="d-flex align-items-center like-section">
-                        <button class="btn-like btn btn-outline-primary btn-sm me-2 
-                        {% if pub.id in likes_usuario %}liked{% endif %}" 
-                                data-pub-id="{{ pub.id }}">
-                            <i class="bi bi-hand-thumbs-up"></i> 
-                            <span class="like-text">Me gusta</span>
-                        </button>
-                        <small class="text-muted like-count">{{ pub.reaccion }} Likes</small>
-                    </div>
-
-                </div>
-
-                <!-- COLUMNA DERECHA (Carrusel de imágenes) -->
-                <div class="col-md-5">
-                    {% if pub.resena.fotografias.all %}
-                    <div id="carousel{{ forloop.counter }}" class="carousel slide carousel-feed" data-bs-ride="carousel">
-                        <div class="carousel-inner rounded-3 shadow-sm">
-                            {% for foto in pub.resena.fotografias.all %}
-                            <div class="carousel-item {% if forloop.first %}active{% endif %}">
-                                <img src="{{ foto.fotografia.url }}" class="d-block w-100 carousel-image" alt="Foto reseña">
+                            <div>
+                                <h5 class="mb-0 username-feed">{{ pub.turista.usuario.username }}</h5>
+                                <small class="text-muted date-feed">{{ pub.fecha_publicacion|date:"d M Y, H:i" }}</small>
                             </div>
-                            {% endfor %}
                         </div>
-                        <button class="carousel-control-prev" type="button" data-bs-target="#carousel{{ forloop.counter }}" data-bs-slide="prev">
-                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                        </button>
-                        <button class="carousel-control-next" type="button" data-bs-target="#carousel{{ forloop.counter }}" data-bs-slide="next">
-                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                        </button>
+
+                        <h6 class="place-name-feed">{{ pub.resena.lugar_turistico.nombre }}</h6>
+                        <p class="text-muted mb-2 location-feed">{{ pub.resena.lugar_turistico.ubicacion }}</p>
+                        <p class="description-feed">{{ pub.resena.descripcion }}</p>
+
+                        <div class="mb-3 rating-section">
+                            <span class="fw-bold rating-label">Calificación:</span>
+                            <span class="ms-2 rating-value">
+                                {{ pub.resena.calificacion }} <i class="bi bi-star-fill text-warning"></i>
+                            </span>
+                        </div>
+
+                        <div class="d-flex align-items-center like-section">
+                            <button class="btn-like btn btn-outline-primary btn-sm me-2 
+                            {% if pub.id in likes_usuario %}liked{% endif %}" 
+                                    data-pub-id="{{ pub.id }}">
+                                <i class="bi bi-hand-thumbs-up"></i> 
+                                <span class="like-text">Me gusta</span>
+                            </button>
+                            <small class="text-muted like-count">{{ pub.reaccion }} Likes</small>
+                        </div>
                     </div>
-                    {% endif %}
+
+                    <!-- COLUMNA DERECHA (Carrusel de imágenes) -->
+                    <div class="col-md-5">
+                        {% with fotos=pub.resena.fotografias.all %}
+                        {% if fotos %}
+                        <div id="carousel{{ forloop.counter }}" class="carousel slide carousel-feed" data-bs-ride="carousel">
+                            <div class="carousel-inner rounded-3 shadow-sm">
+                                {% for foto in fotos %}
+                                <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                                    <img src="{{ foto.fotografia.url }}" class="d-block w-100 carousel-image" alt="Foto reseña">
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            {% if fotos|length > 1 %}
+                            <button class="carousel-control-prev" type="button" data-bs-target="#carousel{{ forloop.counter }}" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#carousel{{ forloop.counter }}" data-bs-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            </button>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
                 </div>
             </div>
+            {% endfor %}
         </div>
-        {% endfor %}
+
+        <!-- BOTÓN CARGAR MÁS -->
+        {% if publicaciones|length > 10 %}
+        <div class="text-center mt-4">
+            <button id="load-more" class="btn btn-outline-secondary px-4">Cargar más</button>
+        </div>
+        {% endif %}
     {% else %}
         <div class="alert alert-info text-center empty-alert">
             No hay publicaciones aún. ¡Sé el primero en compartir tu experiencia!
@@ -85,7 +94,12 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const items = document.querySelectorAll('.feed-item');
+    const loadMoreBtn = document.getElementById('load-more');
+    const itemsPerPage = 10;
+    let currentVisible = 10;
 
+    // --- Funcionalidad de Likes ---
     document.querySelectorAll('.btn-like').forEach(button => {
         button.addEventListener('click', () => {
             const pubId = button.dataset.pubId;
@@ -108,12 +122,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     button.classList.remove('liked');
                 }
             })
-            .catch(error => {
-                console.error('Error al dar like:', error);
-            });
+            .catch(error => console.error('Error al dar like:', error));
         });
     });
+
+    // --- Funcionalidad de "Cargar más" ---
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', () => {
+            const next = currentVisible + itemsPerPage;
+            for (let i = currentVisible; i < next && i < items.length; i++) {
+                items[i].style.display = 'block';
+            }
+            currentVisible = next;
+
+            // Ocultar botón si ya se muestran todas
+            if (currentVisible >= items.length) {
+                loadMoreBtn.style.display = 'none';
+            }
+        });
+    }
 });
 </script>
-
 {% endblock %}

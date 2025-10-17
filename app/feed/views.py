@@ -96,6 +96,7 @@ def eliminar_publicacion(request, publicacion_id):
 
     return redirect('perfil_usuario')
 
+@login_required
 def visualizar_feed(request):
     # Obtener todas las publicaciones más recientes primero
     publicaciones = (

@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect
 from .forms import FormUser, FormTurista
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
+from django.core.paginator import Paginator
+from django.contrib.auth.decorators import login_required
 
 def registrar_usuario(request):
     if request.method == 'POST':
@@ -62,21 +64,26 @@ from feed.models import Publicacion # 👈 IMPORTANTE: Añade esta importación
 
 @login_required
 def mostrar_perfil_usuario(request):
-    """Muestra el perfil del usuario logueado y sus publicaciones."""
+    """Muestra el perfil del usuario logueado con paginación (5 publicaciones por página)."""
     
-    # 1. Obtener el objeto Turista del usuario logueado
-    # El modelo User tiene un related_name='datos' al Turista (request.user.datos)
+    # 1. Obtener el objeto Turista del usuario logueado (User → datos)
     turista = request.user.datos
 
-    # 2. Obtener las publicaciones del usuario, optimizando las consultas.
-    publicaciones = (
+    # 2. Obtener las publicaciones del usuario, optimizando las consultas
+    publicaciones_qs = (
         Publicacion.objects
-        .filter(turista=turista) # 👈 Filtrar solo las publicaciones del Turista actual
+        .filter(turista=turista)
         .select_related('resena__lugar_turistico')
         .prefetch_related('resena__fotografias')
         .order_by('-fecha_publicacion')
     )
 
+    # 3. Paginación (5 publicaciones por página)
+    paginator = Paginator(publicaciones_qs, 5)
+    page_number = request.GET.get('page')
+    publicaciones = paginator.get_page(page_number)  # devuelve un objeto Page
+
+    # 4. Contexto
     context = {
         'turista': turista,
         'usuario': request.user,

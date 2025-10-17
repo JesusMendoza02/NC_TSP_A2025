@@ -1,6 +1,8 @@
 from django import forms
 from django.forms import ClearableFileInput
-from .models import Resena
+from django.utils import timezone
+from datetime import timedelta
+from .models import Resena, LugarTuristico
 
 class MultipleFileInput(forms.ClearableFileInput):
     allow_multiple_selected = True
@@ -18,7 +20,25 @@ class MultipleFileField(forms.FileField):
             result = single_file_clean(data, initial)
         return result
 
+
+class LugarTuristicoChoiceField(forms.ModelChoiceField):
+    """Campo personalizado para mostrar nombre y dirección del lugar"""
+    def label_from_instance(self, obj):
+        return f"{obj.nombre} - {obj.ubicacion}"
+
+
 class FormResena(forms.ModelForm):
+    # Campo personalizado para lugar turístico
+    lugar_turistico = LugarTuristicoChoiceField(
+        queryset=LugarTuristico.objects.all(),
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'style': 'font-size: 0.95rem;'
+        }),
+        label='Lugar turístico',
+        empty_label="Selecciona un lugar..."
+    )
+    
     # Campo extra para las fotografías
     fotografias = MultipleFileField(
         required=False,
@@ -32,7 +52,9 @@ class FormResena(forms.ModelForm):
     # Campo extra para saber si está actualmente en el lugar
     actualmente_en_lugar = forms.ChoiceField(
         choices=[('si', 'Sí'), ('no', 'No')],
-        widget=forms.RadioSelect,
+        widget=forms.RadioSelect(attrs={
+            'class': 'form-check-input'
+        }),
         initial='si',
         label='¿Actualmente en el lugar?'
     )
@@ -44,7 +66,8 @@ class FormResena(forms.ModelForm):
             'type': 'datetime-local',
             'class': 'form-control'
         }),
-        label='Fecha y hora de visita'
+        label='Fecha y hora de visita',
+        help_text='Debe ser dentro del último mes y no puede ser una fecha futura'
     )
 
     class Meta:
@@ -52,7 +75,6 @@ class FormResena(forms.ModelForm):
         fields = ['lugar_turistico', 'descripcion', 'calificacion']
 
         widgets = {
-            'lugar_turistico': forms.Select(attrs={'class': 'form-control'}),
             'descripcion': forms.Textarea(attrs={
                 'class': 'form-control', 
                 'rows': 4, 
@@ -67,7 +89,6 @@ class FormResena(forms.ModelForm):
         }
 
         labels = {
-            'lugar_turistico': 'Lugar turístico',
             'descripcion': 'Descripción de la visita',
             'calificacion': 'Calificación (1-10)',
         }
@@ -77,6 +98,37 @@ class FormResena(forms.ModelForm):
         if calificacion and (calificacion < 1 or calificacion > 10):
             raise forms.ValidationError("La calificación debe estar entre 1 y 10.")
         return calificacion
+    
+    def clean_fecha_visita_manual(self):
+        """Validar que la fecha esté dentro del último mes y no sea futura"""
+        fecha_manual = self.cleaned_data.get('fecha_visita_manual')
+        
+        if fecha_manual:
+            # Obtener la fecha actual
+            ahora = timezone.now()
+            
+            # Convertir fecha_manual a aware si es naive
+            if timezone.is_naive(fecha_manual):
+                fecha_manual = timezone.make_aware(fecha_manual)
+            
+            # Validar que no sea fecha futura
+            if fecha_manual > ahora:
+                raise forms.ValidationError(
+                    "No puedes seleccionar una fecha futura. "
+                    "La fecha debe ser de hoy o anterior."
+                )
+            
+            # Calcular fecha límite (1 mes atrás)
+            hace_un_mes = ahora - timedelta(days=30)
+            
+            # Validar que esté dentro del último mes
+            if fecha_manual < hace_un_mes:
+                raise forms.ValidationError(
+                    "La fecha de visita debe ser dentro del último mes. "
+                    f"No puede ser anterior al {hace_un_mes.strftime('%d/%m/%Y %H:%M')}."
+                )
+        
+        return fecha_manual
     
     def clean(self):
         cleaned_data = super().clean()

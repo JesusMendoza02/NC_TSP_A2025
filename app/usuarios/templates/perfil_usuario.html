@@ -17,14 +17,14 @@
 
 <hr class="my-4 profile-divider">
 
-<h2 class="section-title text-center mb-4">Mis Publicaciones ({{ publicaciones|length }})</h2>
+<h2 class="section-title text-center mb-4">Mis Publicaciones ({{ publicaciones.paginator.count }})</h2>
 
 {% if publicaciones %}
     {% for publicacion in publicaciones %}
     <div class="card mb-4 shadow-sm p-4 profile-publication-card">
         <div class="row align-items-start g-3">
             
-            <!-- Columna izquierda (información) -->
+            <!-- Columna izquierda -->
             <div class="col-md-7 profile-info-col">
                 <h5 class="card-title publication-place mb-2">
                     <i class="bi bi-geo-alt-fill me-2 location-icon"></i> 
@@ -48,10 +48,8 @@
                 </small>
             </div>
 
-            <!-- Columna derecha (carrusel + menú) -->
+            <!-- Columna derecha -->
             <div class="col-md-5 profile-carousel-col">
-                
-                <!-- Menú de opciones flotante (CORREGIDO) -->
                 <div class="dropdown profile-action-menu">
                     <button class="btn btn-sm profile-menu-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-three-dots-vertical"></i>
@@ -70,29 +68,68 @@
                     </ul>
                 </div>
 
-                {% if publicacion.resena.fotografias.all %}
+                {% with fotos=publicacion.resena.fotografias.all %}
+                {% if fotos %}
                 <div id="carousel-profile-{{ forloop.counter }}" class="carousel slide profile-carousel" data-bs-ride="carousel">
                     <div class="carousel-inner rounded-3 shadow-sm">
-                        {% for foto in publicacion.resena.fotografias.all %}
+                        {% for foto in fotos %}
                         <div class="carousel-item {% if forloop.first %}active{% endif %}">
                             <img src="{{ foto.fotografia.url }}" class="d-block w-100 profile-carousel-img" alt="Foto reseña">
                         </div>
                         {% endfor %}
                     </div>
 
-                    <!-- Flechas del carrusel -->
+                    {% if fotos|length > 1 %}
                     <button class="carousel-control-prev" type="button" data-bs-target="#carousel-profile-{{ forloop.counter }}" data-bs-slide="prev">
                         <span class="carousel-control-prev-icon profile-carousel-arrow" aria-hidden="true"></span>
                     </button>
                     <button class="carousel-control-next" type="button" data-bs-target="#carousel-profile-{{ forloop.counter }}" data-bs-slide="next">
                         <span class="carousel-control-next-icon profile-carousel-arrow" aria-hidden="true"></span>
                     </button>
+                    {% endif %}
                 </div>
                 {% endif %}
+                {% endwith %}
             </div>
         </div>
     </div>
     {% endfor %}
+
+    <!-- 🔹 PAGINACIÓN -->
+    <nav aria-label="Paginación de publicaciones">
+        <ul class="pagination justify-content-center mt-4">
+
+            {% if publicaciones.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ publicaciones.previous_page_number }}" aria-label="Anterior">
+                    &laquo;
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+            {% endif %}
+
+            {% for num in publicaciones.paginator.page_range %}
+                {% if num == publicaciones.number %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > publicaciones.number|add:'-3' and num < publicaciones.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                {% endif %}
+            {% endfor %}
+
+            {% if publicaciones.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ publicaciones.next_page_number }}" aria-label="Siguiente">
+                    &raquo;
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+            {% endif %}
+
+        </ul>
+    </nav>
+
 {% else %}
     <div class="alert alert-info text-center profile-empty-alert">
         No has publicado nada aún. ¡Comparte tu primera reseña!
