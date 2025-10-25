@@ -177,7 +177,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Manejo de fecha/hora
     const radios = document.querySelectorAll('input[name="actualmente_en_lugar"]');
     const fechaDiv = document.getElementById('fecha_hora_input');
     
@@ -192,17 +191,14 @@ document.addEventListener('DOMContentLoaded', function() {
         fechaDiv.style.display = 'block';
     }
 
-    // Manejo de imágenes múltiples
     const uploadArea = document.getElementById('upload-area');
     const uploadButton = document.getElementById('upload-button');
     const inputFotos = document.getElementById('id_fotografias');
     const previewContainer = document.getElementById('preview-container');
     let fotosArray = [];
 
-    // Click en el área de upload
     uploadArea.addEventListener('click', () => inputFotos.click());
 
-    // Prevenir comportamiento por defecto
     uploadArea.addEventListener('dragover', (e) => {
         e.preventDefault();
         uploadArea.style.borderColor = '#3f3d56';
@@ -219,53 +215,50 @@ document.addEventListener('DOMContentLoaded', function() {
         uploadArea.style.borderColor = '#e0e0e0';
         uploadArea.style.backgroundColor = '#f8f9fa';
         
-        const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+        const files = Array.from(e.dataTransfer.files);
         agregarFotos(files);
     });
 
-    // Cuando se seleccionan archivos
     inputFotos.addEventListener('change', (e) => {
         const files = Array.from(e.target.files);
         agregarFotos(files);
     });
 
     function agregarFotos(nuevasFiles) {
+        // 🔒 Filtrar solo imágenes
+        nuevasFiles = nuevasFiles.filter(f => f.type.startsWith('image/'));
+        if (nuevasFiles.length === 0) {
+            alert("Solo se permiten archivos de imagen (JPG, PNG, WEBP).");
+            return;
+        }
+
         const espacioDisponible = 3 - fotosArray.length;
-        
         if (nuevasFiles.length > espacioDisponible) {
             alert(`Solo puedes subir ${espacioDisponible} foto(s) más. Máximo 3 en total.`);
             nuevasFiles = nuevasFiles.slice(0, espacioDisponible);
         }
-        
+
         fotosArray = fotosArray.concat(nuevasFiles);
         actualizarPreview();
     }
 
     function actualizarPreview() {
         previewContainer.innerHTML = '';
-        
-        if (fotosArray.length === 0) {
-            uploadButton.style.display = 'block';
-        } else {
-            uploadButton.style.display = 'none';
-        }
-        
+        uploadButton.style.display = fotosArray.length === 0 ? 'block' : 'none';
+
         fotosArray.forEach((file, index) => {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const div = document.createElement('div');
                 div.className = 'preview-item';
-                
                 const img = document.createElement('img');
                 img.src = e.target.result;
                 img.alt = file.name;
-                
                 const btnRemove = document.createElement('button');
                 btnRemove.type = 'button';
                 btnRemove.className = 'remove-btn';
                 btnRemove.innerHTML = '×';
                 btnRemove.onclick = () => eliminarFoto(index);
-                
                 div.appendChild(img);
                 div.appendChild(btnRemove);
                 previewContainer.appendChild(div);
@@ -279,7 +272,6 @@ document.addEventListener('DOMContentLoaded', function() {
         actualizarPreview();
     }
 
-    // Al enviar el formulario
     document.getElementById('form-resena').addEventListener('submit', function(e) {
         const dataTransfer = new DataTransfer();
         fotosArray.forEach(file => dataTransfer.items.add(file));
@@ -287,4 +279,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
 {% endblock %}

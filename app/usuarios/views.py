@@ -85,3 +85,7 @@ def mostrar_perfil_usuario(request):
     }
     
     return render(request, 'perfil_usuario.html', context)
+
+@login_required
+def seguidores(request):
+    pass

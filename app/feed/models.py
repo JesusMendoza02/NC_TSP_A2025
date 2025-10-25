@@ -71,3 +71,21 @@ class Like(models.Model):
 
     def __str__(self):
         return f"{self.turista} dio like a {self.publicacion}"
+    
+
+class Comentario(models.Model):
+    publicacion = models.ForeignKey(
+        Publicacion,
+        on_delete=models.CASCADE,
+        related_name='comentarios'
+    )
+    turista = models.ForeignKey(
+        Turista,
+        on_delete=models.CASCADE,
+        related_name='comentarios'
+    )
+    texto = models.TextField(max_length=500)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Comentario de {self.turista} en {self.publicacion}"

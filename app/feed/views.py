@@ -4,8 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.urls import reverse
 from .forms import FormResena
-from .models import Fotografia, Publicacion, Like
-from django.http import JsonResponse
+from .models import Fotografia, Publicacion, Like, Comentario, LugarTuristico
 from django.views.decorators.http import require_POST
 
 
@@ -78,7 +77,6 @@ def publicar_resena(request):
 
     return render(request, 'publicacion_form.html', {'form_resena': form_resena})
 
-#Permite al usuario eliminar su propia publicación.
 @login_required
 def eliminar_publicacion(request, publicacion_id):
     publicacion = get_object_or_404(Publicacion, id=publicacion_id)
@@ -94,16 +92,27 @@ def eliminar_publicacion(request, publicacion_id):
 
     return redirect('perfil_usuario')
 
+@login_required
 def visualizar_feed(request):
-    # Obtener todas las publicaciones más recientes primero
+    # Obtener la categoría seleccionada desde el parámetro GET
+    categoria = request.GET.get('categoria', '')
+
+    # Publicaciones ordenadas por fecha
     publicaciones = (
         Publicacion.objects
         .select_related('turista', 'resena__lugar_turistico')
-        .prefetch_related('resena__fotografias')
+        .prefetch_related('resena__fotografias', 'comentarios')
         .order_by('-fecha_publicacion')
     )
 
-    # Obtener los IDs de publicaciones a las que el usuario ya dio like
+    # Si hay categoría, filtrar por ella
+    if categoria:
+        publicaciones = publicaciones.filter(resena__lugar_turistico__categoria=categoria)
+
+    # Categorías únicas para el filtro
+    categorias = LugarTuristico.objects.values_list('categoria', flat=True).distinct()
+
+    # Likes del usuario actual
     likes_usuario = set()
     if request.user.is_authenticated and hasattr(request.user, 'datos'):
         likes_usuario = set(
@@ -114,6 +123,8 @@ def visualizar_feed(request):
     context = {
         'publicaciones': publicaciones,
         'likes_usuario': likes_usuario,
+        'categorias': categorias,
+        'categoria_actual': categoria,
     }
 
     return render(request, 'feed.html', context)
@@ -121,29 +132,89 @@ def visualizar_feed(request):
 
 
 
+
 @login_required
 @require_POST
-def dar_like(request):
-    pub_id = request.POST.get('pub_id')
-    
-    try:
-        publicacion = Publicacion.objects.get(id=pub_id)
-    except Publicacion.DoesNotExist:
-        return JsonResponse({'error': 'Publicación no encontrada.'}, status=404)
+def dar_like(request, publicacion_id=None):
+    if not publicacion_id:
+        messages.error(request, "Publicación no válida.")
+        return redirect('inicio:inicio')
 
+    publicacion = get_object_or_404(Publicacion, id=publicacion_id)
     turista = request.user.datos
-    like, created = Like.objects.get_or_create(publicacion=publicacion, turista=turista)
 
-    if not created:
+    like, creado = Like.objects.get_or_create(publicacion=publicacion, turista=turista)
+
+    if not creado:
         like.delete()
-        liked = False
-    else:
-        liked = True
 
     publicacion.reaccion = publicacion.likes.count()
     publicacion.save(update_fields=['reaccion'])
 
-    return JsonResponse({
-        'liked': liked,
-        'total_likes': publicacion.total_likes
-    })
+    if 'detalle' in request.META.get('HTTP_REFERER', ''):
+        return redirect('feed:detalle_publicacion', publicacion_id=publicacion.id)
+
+    return redirect('inicio:inicio')
+
+
+@login_required
+def escribir_comentario(request, publicacion_id=None):
+    if not publicacion_id:
+        return redirect('inicio:inicio')  # Redirige al feed si no hay ID
+
+    publicacion = get_object_or_404(Publicacion, id=publicacion_id)
+    texto = request.POST.get('texto', '').strip()
+
+    if not texto:
+        return redirect('inicio:detalle_publicacion', publicacion_id=publicacion.id)
+
+    if len(texto) > 150:
+        return redirect('inicio:detalle_publicacion', publicacion_id=publicacion.id)
+
+    Comentario.objects.create(
+        publicacion=publicacion,
+        turista=request.user.datos,
+        texto=texto
+    )
+    return redirect('inicio:detalle_publicacion', publicacion_id=publicacion.id)
+
+
+@login_required
+def eliminar_comentario(request, comentario_id=None):
+    if not comentario_id:
+        return redirect('inicio:inicio')  # Redirige al feed si no hay ID
+
+    comentario = get_object_or_404(Comentario, id=comentario_id)
+
+    # Verificar que el usuario actual sea el autor del comentario
+    if comentario.turista.usuario != request.user:
+        return redirect('inicio:detalle_publicacion', publicacion_id=comentario.publicacion.id)
+
+    if request.method == 'POST':
+        publicacion_id = comentario.publicacion.id  # Guardamos ID antes de borrar
+        comentario.delete()
+        return redirect('inicio:detalle_publicacion', publicacion_id=publicacion_id)
+
+    # Opcional: si deseas mostrar una confirmación antes de eliminar
+    return render(request, 'confirmar_eliminar_comentario.html', {'comentario': comentario})
+
+
+@login_required
+def detalle_publicacion(request, publicacion_id):
+    publicacion = get_object_or_404(
+        Publicacion.objects
+        .select_related('turista', 'resena__lugar_turistico')
+        .prefetch_related('resena__fotografias', 'comentarios__turista__usuario'),
+        id=publicacion_id
+    )
+
+    likes_usuario = set()
+    if hasattr(request.user, 'datos'):
+        likes_usuario = set(Like.objects.filter(turista=request.user.datos)
+                            .values_list('publicacion_id', flat=True))
+
+    context = {
+        'publicacion': publicacion,
+        'likes_usuario': likes_usuario
+    }
+    return render(request, 'detalle_publicacion.html', context)
