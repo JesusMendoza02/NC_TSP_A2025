@@ -1,6 +1,7 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from .forms import FormUser, FormTurista
-from feed.models import Publicacion 
+from feed.models import Publicacion, Like
+from .models import Turista, Seguidor
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -57,13 +58,13 @@ def cerrar_sesion(request):
     return redirect('login')
 
 @login_required
-def mostrar_perfil_usuario(request):
-    """Muestra el perfil del usuario logueado con paginación (5 publicaciones por página)."""
-    
-    # 1. Obtener el objeto Turista del usuario logueado (User → datos)
-    turista = request.user.datos
+def perfil_propio(request):
+    """
+    Muestra el perfil del usuario logueado.
+    """
+    turista = request.user.datos  # tu propio objeto Turista
 
-    # 2. Obtener las publicaciones del usuario, optimizando las consultas
+    # Publicaciones con paginación
     publicaciones_qs = (
         Publicacion.objects
         .filter(turista=turista)
@@ -71,21 +72,129 @@ def mostrar_perfil_usuario(request):
         .prefetch_related('resena__fotografias')
         .order_by('-fecha_publicacion')
     )
-
-    # 3. Paginación 
     paginator = Paginator(publicaciones_qs, 5)
     page_number = request.GET.get('page')
-    publicaciones = paginator.get_page(page_number) 
+    publicaciones = paginator.get_page(page_number)
 
-    # 4. Contexto
+    # Seguidores y siguiendo
+    seguidores = Seguidor.objects.filter(turista_seguido=turista)
+    siguiendo = Seguidor.objects.filter(turista_seguidor=turista)
+
+    # IDs de publicaciones que el usuario ha likeado
+    likes_usuario = Like.objects.filter(turista=request.user.datos).values_list('publicacion_id', flat=True)
+
+
     context = {
         'turista': turista,
         'usuario': request.user,
         'publicaciones': publicaciones,
+        'seguidores': seguidores,
+        'siguiendo': siguiendo,
+        'siguiendo_a_usuario': False, 
+        'likes_usuario': likes_usuario,  
     }
-    
+
     return render(request, 'perfil_usuario.html', context)
 
+
 @login_required
-def seguidores(request):
-    pass
+def perfil_usuario(request, username):
+    """
+    Muestra el perfil de cualquier usuario por su username.
+    """
+    # Obtener el turista correspondiente al username
+    turista = get_object_or_404(Turista, usuario__username=username)
+
+    # Publicaciones con paginación
+    publicaciones_qs = (
+        Publicacion.objects
+        .filter(turista=turista)
+        .select_related('resena__lugar_turistico')
+        .prefetch_related('resena__fotografias')
+        .order_by('-fecha_publicacion')
+    )
+    paginator = Paginator(publicaciones_qs, 5)
+    page_number = request.GET.get('page')
+    publicaciones = paginator.get_page(page_number)
+
+    # Seguidores y siguiendo
+    seguidores = Seguidor.objects.filter(turista_seguido=turista)
+    siguiendo = Seguidor.objects.filter(turista_seguidor=turista)
+
+    # Ver si el usuario actual sigue a este perfil
+    siguiendo_a_usuario = Seguidor.objects.filter(
+        turista_seguidor=request.user.datos,
+        turista_seguido=turista
+    ).exists()
+
+    # IDs de publicaciones que el usuario ha likeado
+    likes_usuario = Like.objects.filter(turista=request.user.datos).values_list('publicacion_id', flat=True)
+
+    context = {
+        'turista': turista,
+        'usuario': request.user,
+        'publicaciones': publicaciones,
+        'seguidores': seguidores,
+        'siguiendo': siguiendo,
+        'siguiendo_a_usuario': siguiendo_a_usuario,
+        'likes_usuario': likes_usuario,  
+    }
+
+    return render(request, 'perfil_usuario.html', context)
+
+
+
+@login_required
+def seguidores(request, username=None):
+    if username:
+        turista = get_object_or_404(Turista, usuario__username=username)
+    else:
+        turista = request.user.datos
+
+    # Personas que este usuario sigue
+    lista_siguiendo = (
+        Seguidor.objects.filter(turista_seguidor=turista)
+        .select_related('turista_seguido__usuario')
+    )
+
+    # Personas que siguen a este usuario
+    lista_seguidores = (
+        Seguidor.objects.filter(turista_seguido=turista)
+        .select_related('turista_seguidor__usuario')
+    )
+
+    # Lista de IDs de usuarios que el usuario logueado sigue
+    siguiendo_ids = set(
+        Seguidor.objects.filter(turista_seguidor=request.user.datos)
+        .values_list('turista_seguido__id', flat=True)
+    )
+
+    context = {
+        'turista': turista,
+        'seguidores': lista_seguidores,
+        'siguiendo': lista_siguiendo,
+        'siguiendo_ids': siguiendo_ids,
+    }
+
+    return render(request, 'seguidores.html', context)
+
+
+
+@login_required
+def toggle_seguir(request, turista_id):
+    turista_a_seguir = get_object_or_404(Turista, id=turista_id)
+    turista_actual = request.user.datos
+
+    if turista_actual == turista_a_seguir:
+        return redirect('perfil_usuario',turista_a_seguir.usuario.username)  
+
+    relacion, creado = Seguidor.objects.get_or_create(
+        turista_seguidor=turista_actual,
+        turista_seguido=turista_a_seguir
+    )
+
+    if not creado:  
+        relacion.delete()
+
+    return redirect('perfil_usuario', turista_a_seguir.usuario.username)
+

@@ -6,6 +6,7 @@ from django.urls import reverse
 from .forms import FormResena
 from .models import Fotografia, Publicacion, Like, Comentario, LugarTuristico
 from django.views.decorators.http import require_POST
+from django.http import JsonResponse
 
 
 
@@ -133,28 +134,33 @@ def visualizar_feed(request):
 
 
 
+
+
 @login_required
 @require_POST
-def dar_like(request, publicacion_id=None):
-    if not publicacion_id:
-        messages.error(request, "Publicación no válida.")
-        return redirect('inicio:inicio')
-
+def dar_like(request, publicacion_id):
     publicacion = get_object_or_404(Publicacion, id=publicacion_id)
     turista = request.user.datos
+    
+    if publicacion.turista == turista:
+        return JsonResponse({'error': 'No puedes dar like a tu propia publicación.'}, status=400)
 
     like, creado = Like.objects.get_or_create(publicacion=publicacion, turista=turista)
 
     if not creado:
         like.delete()
+        liked = False
+    else:
+        liked = True
 
     publicacion.reaccion = publicacion.likes.count()
     publicacion.save(update_fields=['reaccion'])
 
-    if 'detalle' in request.META.get('HTTP_REFERER', ''):
-        return redirect('feed:detalle_publicacion', publicacion_id=publicacion.id)
+    return JsonResponse({
+        'liked': liked,
+        'total_likes': publicacion.reaccion
+    })
 
-    return redirect('inicio:inicio')
 
 
 @login_required
@@ -215,6 +221,7 @@ def detalle_publicacion(request, publicacion_id):
 
     context = {
         'publicacion': publicacion,
+        'usuario': request.user,
         'likes_usuario': likes_usuario
     }
     return render(request, 'detalle_publicacion.html', context)
