@@ -84,14 +84,14 @@ def eliminar_publicacion(request, publicacion_id):
 
     if publicacion.turista.usuario != request.user:
         messages.error(request, "No tienes permiso para eliminar esta publicación.")
-        return redirect('perfil_usuario')
+        return redirect('perfil_propio')
 
     if request.method == 'POST':
         publicacion.delete()
         messages.success(request, "Publicación eliminada con éxito.")
-        return redirect('perfil_usuario') 
+        return redirect('perfil_propio') 
 
-    return redirect('perfil_usuario')
+    return redirect('perfil_propio')
 
 @login_required
 def visualizar_feed(request):
