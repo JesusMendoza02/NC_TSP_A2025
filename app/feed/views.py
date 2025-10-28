@@ -76,7 +76,7 @@ def publicar_resena(request):
     else:
         form_resena = FormResena()
 
-    return render(request, 'publicacion_form.html', {'form_resena': form_resena})
+    return render(request, 'publicacion_form.html', {'form_resena': form_resena , 'username': request.user.username})
 
 @login_required
 def eliminar_publicacion(request, publicacion_id):
@@ -84,14 +84,14 @@ def eliminar_publicacion(request, publicacion_id):
 
     if publicacion.turista.usuario != request.user:
         messages.error(request, "No tienes permiso para eliminar esta publicación.")
-        return redirect('perfil_propio')
+        return redirect('perfil_usuario',request.user.username)
 
     if request.method == 'POST':
         publicacion.delete()
         messages.success(request, "Publicación eliminada con éxito.")
-        return redirect('perfil_propio') 
+        return redirect('perfil_usuario',request.user.username) 
 
-    return redirect('perfil_propio')
+    return redirect('perfil_usuario',request.user.username)
 
 @login_required
 def visualizar_feed(request):
@@ -105,7 +105,7 @@ def visualizar_feed(request):
         .prefetch_related('resena__fotografias', 'comentarios')
         .order_by('-fecha_publicacion')
     )
-
+    username = request.user.username 
     # Si hay categoría, filtrar por ella
     if categoria:
         publicaciones = publicaciones.filter(resena__lugar_turistico__categoria=categoria)
@@ -126,6 +126,7 @@ def visualizar_feed(request):
         'likes_usuario': likes_usuario,
         'categorias': categorias,
         'categoria_actual': categoria,
+        'username': username,
     }
 
     return render(request, 'feed.html', context)
@@ -222,6 +223,7 @@ def detalle_publicacion(request, publicacion_id):
     context = {
         'publicacion': publicacion,
         'usuario': request.user,
+        'username': request.user.username,
         'likes_usuario': likes_usuario
     }
     return render(request, 'detalle_publicacion.html', context)

@@ -7,7 +7,6 @@ urlpatterns = [
     path('cerrar/', views.cerrar_sesion, name='cerrar_sesion'),
     path('seguidores/', views.seguidores, name='seguidores'),
     path('seguidores/<str:username>/', views.seguidores, name='seguidores_usuario'),
-    path('perfil/', views.perfil_propio, name='perfil_propio'),
     path('perfil/<str:username>/', views.perfil_usuario, name='perfil_usuario'),
     path('perfil/seguir/<int:turista_id>/', views.toggle_seguir, name='toggle_seguir'),
 

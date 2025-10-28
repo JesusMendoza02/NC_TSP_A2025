@@ -58,46 +58,6 @@ def cerrar_sesion(request):
     return redirect('login')
 
 @login_required
-def perfil_propio(request):
-    """
-    Muestra el perfil del usuario logueado.
-    """
-    turista = request.user.datos  # tu propio objeto Turista
-
-    # Publicaciones con paginación
-    publicaciones_qs = (
-        Publicacion.objects
-        .filter(turista=turista)
-        .select_related('resena__lugar_turistico')
-        .prefetch_related('resena__fotografias')
-        .order_by('-fecha_publicacion')
-    )
-    paginator = Paginator(publicaciones_qs, 5)
-    page_number = request.GET.get('page')
-    publicaciones = paginator.get_page(page_number)
-
-    # Seguidores y siguiendo
-    seguidores = Seguidor.objects.filter(turista_seguido=turista)
-    siguiendo = Seguidor.objects.filter(turista_seguidor=turista)
-
-    # IDs de publicaciones que el usuario ha likeado
-    likes_usuario = Like.objects.filter(turista=request.user.datos).values_list('publicacion_id', flat=True)
-
-
-    context = {
-        'turista': turista,
-        'usuario': request.user,
-        'publicaciones': publicaciones,
-        'seguidores': seguidores,
-        'siguiendo': siguiendo,
-        'siguiendo_a_usuario': False, 
-        'likes_usuario': likes_usuario,  
-    }
-
-    return render(request, 'perfil_usuario.html', context)
-
-
-@login_required
 def perfil_usuario(request, username):
     """
     Muestra el perfil de cualquier usuario por su username.
@@ -132,7 +92,7 @@ def perfil_usuario(request, username):
 
     context = {
         'turista': turista,
-        'usuario': request.user,
+        'username': request.user.username,
         'publicaciones': publicaciones,
         'seguidores': seguidores,
         'siguiendo': siguiendo,
@@ -174,6 +134,7 @@ def seguidores(request, username=None):
         'seguidores': lista_seguidores,
         'siguiendo': lista_siguiendo,
         'siguiendo_ids': siguiendo_ids,
+        'username': request.user.username,
     }
 
     return render(request, 'seguidores.html', context)
