@@ -17,7 +17,7 @@
                 </div>
                 <ul class="list-group list-group-flush">
                     {% for s in siguiendo %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                    <li class="list-group-item d-flex align-items-center py-3">
                         <div class="d-flex align-items-center">
                             {% if s.turista_seguido.foto_perfil %}
                                 <img src="{{ s.turista_seguido.foto_perfil.url }}" class="rounded-circle me-3 shadow-sm" width="45" height="45" style="object-fit: cover;">
@@ -28,19 +28,10 @@
                                 {{ s.turista_seguido.usuario.username }}
                             </a>
                         </div>
-
-                        {% if s.turista_seguido != request.user.datos %}
-                        <form method="POST" action="{% url 'toggle_seguir' s.turista_seguido.id %}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-unfollow btn-sm rounded-pill px-3">
-                                <i class="bi bi-person-dash"></i> Dejar de seguir
-                            </button>
-                        </form>
-                        {% endif %}
                     </li>
                     {% empty %}
                     <li class="list-group-item text-center py-4 text-muted">
-                        No sigue a nadie aún.
+                        No sigues a nadie aún.
                     </li>
                     {% endfor %}
                 </ul>
@@ -55,7 +46,7 @@
                 </div>
                 <ul class="list-group list-group-flush">
                     {% for s in seguidores %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                    <li class="list-group-item d-flex align-items-center py-3">
                         <div class="d-flex align-items-center">
                             {% if s.turista_seguidor.foto_perfil %}
                                 <img src="{{ s.turista_seguidor.foto_perfil.url }}" class="rounded-circle me-3 shadow-sm" width="45" height="45" style="object-fit: cover;">
@@ -66,21 +57,10 @@
                                 {{ s.turista_seguidor.usuario.username }}
                             </a>
                         </div>
-
-                        {% if s.turista_seguidor != request.user.datos %}
-                            {% if s.turista_seguidor.id not in siguiendo_ids %}
-                            <form method="POST" action="{% url 'toggle_seguir' s.turista_seguidor.id %}">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-follow btn-sm rounded-pill px-3">
-                                    <i class="bi bi-person-plus"></i> Seguir
-                                </button>
-                            </form>
-                            {% endif %}
-                        {% endif %}
                     </li>
                     {% empty %}
                     <li class="list-group-item text-center py-4 text-muted">
-                        No tiene seguidores aún.
+                        No tienes seguidores aún.
                     </li>
                     {% endfor %}
                 </ul>

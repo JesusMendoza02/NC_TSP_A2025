@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.urls import reverse
 from .forms import FormResena
 from .models import Fotografia, Publicacion, Like, Comentario, LugarTuristico
+from usuarios.models import Seguidor
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 
@@ -95,20 +96,35 @@ def eliminar_publicacion(request, publicacion_id):
 
 @login_required
 def visualizar_feed(request):
-    # Obtener la categoría seleccionada desde el parámetro GET
     categoria = request.GET.get('categoria', '')
 
-    # Publicaciones ordenadas por fecha
+    # Publicaciones ordenadas por fecha descendente
     publicaciones = (
         Publicacion.objects
         .select_related('turista', 'resena__lugar_turistico')
         .prefetch_related('resena__fotografias', 'comentarios')
-        .order_by('-fecha_publicacion')
     )
-    username = request.user.username 
-    # Si hay categoría, filtrar por ella
+
+    username = request.user.username
+
+    # Obtener los IDs de los usuarios que el actual sigue
+    siguiendo_ids = Seguidor.objects.filter(
+        turista_seguidor=request.user.datos
+    ).values_list('turista_seguido_id', flat=True)
+
+    # --- FILTRO POR CATEGORÍA ---
     if categoria:
         publicaciones = publicaciones.filter(resena__lugar_turistico__categoria=categoria)
+
+    # --- ORDEN PERSONALIZADO ---
+    # Primero las publicaciones de seguidos, luego las demás
+    publicaciones = sorted(
+        publicaciones,
+        key=lambda pub: (
+            0 if pub.turista_id in siguiendo_ids else 1,  # Prioridad: seguidos primero
+            -pub.fecha_publicacion.timestamp()             # Dentro del grupo, más recientes primero
+        )
+    )
 
     # Categorías únicas para el filtro
     categorias = LugarTuristico.objects.values_list('categoria', flat=True).distinct()
@@ -130,12 +146,6 @@ def visualizar_feed(request):
     }
 
     return render(request, 'feed.html', context)
-
-
-
-
-
-
 
 @login_required
 @require_POST

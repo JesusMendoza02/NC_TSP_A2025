@@ -31,7 +31,7 @@
             <div class="col-md-12">
                 <h4 class="fw-bold">{{ publicacion.resena.lugar_turistico.nombre }}</h4>
                 <p class="text-secondary mb-1"><i class="bi bi-tags"></i> {{ publicacion.resena.lugar_turistico.categoria }}</p>
-                <p class="text-muted mb-2">{{ publicacion.resena.ubicacion }}</p>
+                <p class="text-muted mb-2">{{ publicacion.resena.lugar_turistico.ubicacion }}</p>
                 <p>{{ publicacion.resena.descripcion }}</p>
                 <div class="mb-3">
                     <span class="fw-bold">Calificación:</span>
@@ -112,7 +112,7 @@
                 {% csrf_token %}
                 <input type="text" name="texto" class="form-control me-2" placeholder="Escribe un comentario..." maxlength="150" required>
                 <button type="submit" class="btn-comment">
-                    <i class="bi bi-send-fill me-1"></i> Publicar
+                    <i class="bi bi-send-fill me-1"></i> Comentar
                 </button>
             </form>
         </div>
@@ -124,11 +124,12 @@
     <img id="lightboxImage" src="" alt="Imagen completa">
 </div>
 
-<!-- JS: Likes + Lightbox -->
+<!-- JS: Likes + Lightbox + Eliminar comentario con confirmación -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Likes
+    // ===== LIKES =====
     const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
     document.querySelectorAll('.btn-like').forEach(button => {
         button.addEventListener('click', async () => {
@@ -154,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Lightbox
+    // ===== LIGHTBOX =====
     const overlay = document.getElementById('lightboxOverlay');
     const lightboxImage = document.getElementById('lightboxImage');
     document.querySelectorAll('#carouselDetalle .img-clickable').forEach(img => {
@@ -169,8 +170,40 @@ document.addEventListener('DOMContentLoaded', () => {
             lightboxImage.src = '';
         }
     });
+
+    // ===== ELIMINAR COMENTARIO (SweetAlert2) =====
+    document.querySelectorAll('.btn-delete-comment').forEach(btn => {
+        btn.addEventListener('click', async e => {
+            e.preventDefault();
+            const form = btn.closest('form');
+
+            const result = await Swal.fire({
+                title: '¿Eliminar comentario?',
+                text: 'Esta acción no se puede deshacer.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true,
+                background: '#fff',
+                customClass: {
+                    title: 'fw-bold text-dark',
+                    popup: 'rounded-4 shadow-lg',
+                    confirmButton: 'px-4 py-2',
+                    cancelButton: 'px-4 py-2'
+                }
+            });
+
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
+    });
 });
 </script>
+
 
 <!-- ESTILOS -->
 <style>

@@ -51,7 +51,6 @@ def inicio_sesion(request):
     # Si es GET o hay error, renderiza la página de login
     return render(request, 'login.html')
 
-
 def cerrar_sesion(request):
     logout(request)
     messages.info(request, 'Has cerrado sesión correctamente.')
