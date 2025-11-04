@@ -108,9 +108,12 @@
             </div>
 
             <!-- FORMULARIO NUEVO COMENTARIO -->
-            <form method="POST" action="{% url 'feed:escribir_comentario' publicacion.id %}" class="mt-3 w-100 d-flex comment-form">
+            <form method="POST" action="{% url 'feed:escribir_comentario' publicacion.id %}" class="mt-3 w-100 d-flex comment-form" novalidate>
                 {% csrf_token %}
-                <input type="text" name="texto" class="form-control me-2" placeholder="Escribe un comentario..." maxlength="150" required>
+                <div class="flex-grow-1 me-2">
+                    <input type="text" name="texto" class="form-control" placeholder="Escribe un comentario..." maxlength="150">
+                    <small id="error-comentario" class="text-danger d-none">Rellena este campo</small>
+                </div>
                 <button type="submit" class="btn-comment">
                     <i class="bi bi-send-fill me-1"></i> Comentar
                 </button>
@@ -124,7 +127,7 @@
     <img id="lightboxImage" src="" alt="Imagen completa">
 </div>
 
-<!-- JS: Likes + Lightbox + Eliminar comentario con confirmación -->
+<!-- JS -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -171,12 +174,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ===== ELIMINAR COMENTARIO (SweetAlert2) =====
+    // ===== VALIDACIÓN DE COMENTARIO =====
+    const commentForm = document.querySelector('.comment-form');
+    if (commentForm) {
+        commentForm.addEventListener('submit', (e) => {
+            const input = commentForm.querySelector('input[name="texto"]');
+            const errorMsg = document.getElementById('error-comentario');
+            if (!input.value.trim()) {
+                e.preventDefault();
+                errorMsg.classList.remove('d-none');
+                input.classList.add('is-invalid');
+            } else {
+                errorMsg.classList.add('d-none');
+                input.classList.remove('is-invalid');
+            }
+        });
+    }
+
+    // ===== ELIMINAR COMENTARIO =====
     document.querySelectorAll('.btn-delete-comment').forEach(btn => {
         btn.addEventListener('click', async e => {
             e.preventDefault();
             const form = btn.closest('form');
-
             const result = await Swal.fire({
                 title: '¿Eliminar comentario?',
                 text: 'Esta acción no se puede deshacer.',
@@ -186,16 +205,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 cancelButtonColor: '#6c757d',
                 confirmButtonText: 'Sí, eliminar',
                 cancelButtonText: 'Cancelar',
-                reverseButtons: true,
-                background: '#fff',
-                customClass: {
-                    title: 'fw-bold text-dark',
-                    popup: 'rounded-4 shadow-lg',
-                    confirmButton: 'px-4 py-2',
-                    cancelButton: 'px-4 py-2'
-                }
+                reverseButtons: true
             });
-
             if (result.isConfirmed) {
                 form.submit();
             }
@@ -204,9 +215,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-
 <!-- ESTILOS -->
 <style>
+.is-invalid { border-color: #dc3545 !important; }
 .comentarios-section { font-family: 'Inter', sans-serif; font-size: 0.92rem; }
 .comentario-item strong { color: #333; }
 .btn-delete-comment { background: transparent; border: none; color: #dc3545; font-size: 1rem; padding: 4px 6px; border-radius: 50%; transition: all 0.2s ease; }

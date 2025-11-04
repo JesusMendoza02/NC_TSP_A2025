@@ -5,13 +5,14 @@
 <h2 class="text-center mb-4" style="color: #3f3d56;">Publicar Reseña</h2>
 
 
-<form method="POST" enctype="multipart/form-data" id="form-resena">
+<form method="POST" enctype="multipart/form-data" id="form-resena" novalidate>
     {% csrf_token %}
 
     <!-- Lugar turístico -->
     <div class="mb-3">
         {{ form_resena.lugar_turistico.label_tag }}
         {{ form_resena.lugar_turistico }}
+        <small class="text-danger d-none error-msg">Rellena este campo</small>
         {% if form_resena.lugar_turistico.errors %}
             <div class="text-danger small">{{ form_resena.lugar_turistico.errors }}</div>
         {% endif %}
@@ -21,6 +22,7 @@
     <div class="mb-3">
         {{ form_resena.descripcion.label_tag }}
         {{ form_resena.descripcion }}
+        <small class="text-danger d-none error-msg">Rellena este campo</small>
         {% if form_resena.descripcion.errors %}
             <div class="text-danger small">{{ form_resena.descripcion.errors }}</div>
         {% endif %}
@@ -30,6 +32,7 @@
     <div class="mb-3">
         {{ form_resena.calificacion.label_tag }}
         {{ form_resena.calificacion }}
+        <small class="text-danger d-none error-msg">Rellena este campo</small>
         {% if form_resena.calificacion.errors %}
             <div class="text-danger small">{{ form_resena.calificacion.errors }}</div>
         {% endif %}
@@ -45,6 +48,7 @@
                 </label>
             {% endfor %}
         </div>
+        <small class="text-danger d-none error-msg">Rellena este campo</small>
         {% if form_resena.actualmente_en_lugar.errors %}
             <div class="text-danger small">{{ form_resena.actualmente_en_lugar.errors }}</div>
         {% endif %}
@@ -54,6 +58,7 @@
     <div class="mb-3" id="fecha_hora_input" style="display:none;">
         {{ form_resena.fecha_visita_manual.label_tag }}
         {{ form_resena.fecha_visita_manual }}
+        <small class="text-danger d-none error-msg">Rellena este campo</small>
         {% if form_resena.fecha_visita_manual.errors %}
             <div class="text-danger small">{{ form_resena.fecha_visita_manual.errors }}</div>
         {% endif %}
@@ -276,6 +281,39 @@ document.addEventListener('DOMContentLoaded', function() {
         const dataTransfer = new DataTransfer();
         fotosArray.forEach(file => dataTransfer.items.add(file));
         inputFotos.files = dataTransfer.files;
+
+        // Validación: mostrar mensajes "Rellena este campo" sin cambiar estilos
+        let valido = true;
+        // Recorremos los contenedores .mb-3 que contienen cada campo
+        document.querySelectorAll('#form-resena .mb-3').forEach(div => {
+            const input = div.querySelector('input, textarea, select');
+            const errorMsg = div.querySelector('.error-msg');
+            // consideramos visible (no oculto) y que exista el input
+            if (input && input.offsetParent !== null) {
+                const tipoRadio = input.type === 'radio' || input.type === 'checkbox';
+                let valorVacio = false;
+
+                if (tipoRadio) {
+                    // para radios: comprobar si hay alguno seleccionado dentro del mismo nombre
+                    const name = input.name;
+                    const seleccionado = document.querySelectorAll('input[name="'+name+'"]:checked').length > 0;
+                    if (!seleccionado) valorVacio = true;
+                } else {
+                    if (!input.value.trim()) valorVacio = true;
+                }
+
+                if (valorVacio) {
+                    if (errorMsg) errorMsg.classList.remove('d-none');
+                    input.classList.add('is-invalid');
+                    valido = false;
+                } else {
+                    if (errorMsg) errorMsg.classList.add('d-none');
+                    input.classList.remove('is-invalid');
+                }
+            }
+        });
+
+        if (!valido) e.preventDefault();
     });
 });
 </script>
