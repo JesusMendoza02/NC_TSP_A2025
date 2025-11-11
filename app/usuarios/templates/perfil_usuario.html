@@ -14,6 +14,21 @@
             <i class="bi bi-person-circle mb-3" style="font-size:4rem; color:#6c757d;"></i>
         {% endif %}
 
+    <!-- CAMPANA DE NOTIFICACIONES -->
+    <div class="notificaciones-wrapper">
+        <button id="btn-notificaciones" class="btn btn-outline-secondary position-relative shadow-sm">
+            <i class="bi bi-bell" style="font-size: 1.6rem;"></i>
+            <span id="contador-notificaciones"
+                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                style="font-size: 0.7rem;"></span>
+        </button>
+
+        <div id="lista-notificaciones"
+            class="dropdown-menu shadow-sm border-0 p-0"
+            style="display:none; position:absolute; left:0; top:50px; width:320px; max-height:400px; overflow-y:auto; border-radius:1rem;">
+        </div>
+    </div>
+
         <h3 class="fw-bold mb-1">{{ turista.usuario.username }}</h3>
 
         <!-- Seguidores y siguiendo -->
@@ -193,7 +208,7 @@
     {% endif %}
 </div>
 
-<!-- JS Likes, Cargar más y SweetAlert2 -->
+<!-- JS Likes, Cargar más, SweetAlert2 y Notificaciones -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -277,21 +292,70 @@ document.addEventListener('DOMContentLoaded', () => {
                 cancelButtonColor: '#6c757d',
                 confirmButtonText: 'Sí, eliminar',
                 cancelButtonText: 'Cancelar',
-                reverseButtons: true,
-                background: '#fff',
-                customClass: {
-                    title: 'fw-bold text-dark',
-                    popup: 'rounded-4 shadow-lg',
-                    confirmButton: 'px-4 py-2',
-                    cancelButton: 'px-4 py-2'
-                }
+                reverseButtons: true
             });
 
-            if (result.isConfirmed) {
-                form.submit();
-            }
+            if (result.isConfirmed) form.submit();
         });
     });
+
+    // ===== NOTIFICACIONES =====
+    const btn = document.getElementById('btn-notificaciones');
+    const lista = document.getElementById('lista-notificaciones');
+    const contador = document.getElementById('contador-notificaciones');
+
+    if (btn && lista && contador) {
+        btn.addEventListener('click', async () => {
+            if (lista.style.display === 'block') {
+                lista.style.display = 'none';
+                return;
+            }
+
+            try {
+                const res = await fetch("{% url 'feed:obtener_notificaciones' %}");
+                const data = await res.json();
+
+                lista.innerHTML = '';
+                data.notificaciones.forEach(n => {
+                    const item = document.createElement('a');
+                    item.href = n.url;
+                    item.style.display = 'block';
+                    item.style.textDecoration = 'none';
+                    item.style.color = 'black';
+                    item.innerHTML = `
+                        <div style="padding:10px; border-bottom:1px solid #eee;">
+                            <p style="margin:0;">${n.mensaje}</p>
+                            <small style="color:gray;">${n.fecha}</small>
+                        </div>
+                    `;
+                    lista.appendChild(item);
+                });
+
+                if (data.notificaciones.length === 0) {
+                    lista.innerHTML = '<p style="padding:10px; text-align:center;">No tienes notificaciones</p>';
+                }
+
+                lista.style.display = 'block';
+                contador.textContent = '';
+            } catch (err) {
+                console.error('Error cargando notificaciones:', err);
+            }
+        });
+
+        async function actualizarContador() {
+            try {
+                const res = await fetch("{% url 'feed:obtener_notificaciones' %}");
+                const data = await res.json();
+                const noLeidas = data.notificaciones.filter(n => !n.leida).length;
+                contador.textContent = noLeidas > 0 ? noLeidas : '';
+            } catch (err) {
+                console.error('Error actualizando contador:', err);
+            }
+        }
+
+        actualizarContador();
+        setInterval(actualizarContador, 30000);
+    }
 });
 </script>
 
@@ -313,9 +377,6 @@ document.addEventListener('DOMContentLoaded', () => {
 .comentarios-section { font-family:'Inter',sans-serif; font-size:0.92rem; }
 .comentario-item strong { color:#333; }
 
-.img-clickable { cursor:pointer; transition: transform 0.2s; }
-.img-clickable:hover { transform: scale(1.02); }
-
 .btn-vermas {
     background-color:#0d6efd; color:#fff; border:none;
     border-radius:30px; font-weight:500; letter-spacing:0.3px;
@@ -327,23 +388,34 @@ document.addEventListener('DOMContentLoaded', () => {
     box-shadow: 0 4px 12px rgba(13,110,253,0.3);
 }
 
-/* SWEETALERT2 CUSTOM STYLE */
-.swal2-popup {
-    font-family: 'Inter', sans-serif !important;
-    border-radius: 1rem !important;
+/* === POSICIÓN CAMPANA === */
+.perfil-header {
+    position: relative; 
 }
-.swal2-title {
-    font-size: 1.4rem !important;
+.notificaciones-wrapper {
+    position: absolute;
+    top: -70px;
+    left: 1.5rem;
+    z-index: 1050;
 }
-.swal2-styled.swal2-confirm {
-    background-color: #dc3545 !important;
-    border-radius: 0.5rem !important;
-    font-weight: 600;
+
+@media (max-width: 768px) {
+    .notificaciones-wrapper {
+        top: 0.8rem;
+        right: 0.8rem;
+    }
 }
-.swal2-styled.swal2-cancel {
-    background-color: #6c757d !important;
-    border-radius: 0.5rem !important;
-    font-weight: 600;
+
+.btn-outline-secondary {
+    border: none;
+    background-color: #fff;
+    color: #555;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-outline-secondary:hover {
+    color: #0d6efd;
+    background-color: #f0f8ff;
 }
 </style>
 

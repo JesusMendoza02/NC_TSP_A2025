@@ -2,9 +2,11 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from django.utils.timesince import timesince
 from django.urls import reverse
+from datetime import datetime
 from .forms import FormResena
-from .models import Fotografia, Publicacion, Like, Comentario, LugarTuristico
+from .models import Fotografia, Publicacion, Like, Comentario, LugarTuristico, Notificacion
 from usuarios.models import Seguidor
 from django.views.decorators.http import require_POST, require_http_methods
 from django.http import JsonResponse
@@ -345,3 +347,69 @@ def detalle_publicacion(request, publicacion_id):
         'likes_usuario': likes_usuario
     }
     return render(request, 'detalle_publicacion.html', context)
+
+@login_required
+def obtener_notificaciones(request):
+    """
+    Obtiene únicamente las notificaciones NO LEÍDAS del usuario.
+    Cada una contiene su ícono, mensaje, tiempo y URL.
+    """
+    qs = Notificacion.objects.filter(
+        receptor=request.user.datos,
+        leida=False  # 🔹 Solo las no leídas
+    ).order_by('-fecha')[:10]
+
+    data = []
+    for n in qs:
+        # La URL redirige a la vista que marca como leída y abre el destino
+        url = reverse('feed:abrir_notificacion', args=[n.id])
+
+        # Ícono según tipo
+        if n.tipo == 'like':
+            icono = 'bi-hand-thumbs-up-fill text-primary'
+        elif n.tipo == 'comentario':
+            icono = 'bi-chat-dots-fill text-success'
+        elif n.tipo == 'nuevo_seguidor':
+            icono = 'bi-person-plus-fill text-warning'
+        elif n.tipo == 'nueva_publicacion':
+            icono = 'bi-bell-fill text-info'
+        else:
+            icono = 'bi-bell'
+
+        texto = n.mensaje or "Tienes una nueva notificación"
+
+        data.append({
+            'id': n.id,
+            'mensaje': texto,
+            'texto': texto,  # compatibilidad para feed
+            'fecha': n.fecha.strftime('%d/%m/%Y %H:%M'),
+            'tiempo': timesince(n.fecha).split(',')[0] + " atrás",
+            'leida': n.leida,
+            'url': url,
+            'icono': icono,
+        })
+
+    nuevas = qs.count()  # 🔹 Solo cuenta las no leídas
+
+    return JsonResponse({'notificaciones': data, 'nuevas': nuevas})
+
+
+@login_required
+def abrir_notificacion(request, notificacion_id):
+    """
+    Marca una notificación como leída y redirige a su destino.
+    """
+    notificacion = get_object_or_404(Notificacion, id=notificacion_id, receptor=request.user.datos)
+
+    # 🔹 Marcar como leída
+    if notificacion.leida is False:
+        notificacion.leida = True
+        notificacion.save()
+
+    # 🔹 Redirigir según el tipo
+    if notificacion.tipo in ['like', 'comentario', 'nueva_publicacion'] and notificacion.publicacion:
+        return redirect('feed:detalle_publicacion', notificacion.publicacion.id)
+    elif notificacion.tipo == 'nuevo_seguidor' and notificacion.perfil_usuario:
+        return redirect('perfil_usuario', notificacion.perfil_usuario.usuario.username)
+    else:
+        return redirect('feed:inicio')
