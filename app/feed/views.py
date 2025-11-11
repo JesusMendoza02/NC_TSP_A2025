@@ -6,8 +6,71 @@ from django.urls import reverse
 from .forms import FormResena
 from .models import Fotografia, Publicacion, Like, Comentario, LugarTuristico
 from usuarios.models import Seguidor
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 from django.http import JsonResponse
+from .places_api import buscar_lugares_zacatecas, categorizar_lugar
+import requests
+from django.conf import settings
+import json
+
+
+def buscar_lugares(request):
+    query = request.GET.get("q", "")
+    if not query:
+        return JsonResponse({"lugares": []})
+
+    api_key = settings.GOOGLE_MAPS_API_KEY
+
+    # Coordenadas del centro de Zacatecas, Zacatecas
+    lat = 22.7740
+    lng = -102.5720
+    radio = 25000  # 25 km de radio
+
+    url = (
+        f"https://maps.googleapis.com/maps/api/place/textsearch/json"
+        f"?query={query}"
+        f"&location={lat},{lng}"
+        f"&radius={radio}"
+        f"&language=es"
+        f"&key={api_key}"
+    )
+
+    response = requests.get(url)
+    data = response.json()
+
+    # 🔹 Tipos de lugares turísticos o de interés
+    tipos_turisticos = {
+        "tourist_attraction", "natural_feature", "point_of_interest", "museum", "church",
+        "park", "natural_feature", "art_gallery", "zoo", "amusement_park",
+        "hindu_temple", "mosque", "synagogue", "place_of_worship",
+        "city_hall", "library", "aquarium", "stadium", "university",
+        "cemetery", "establishment", "rv_park", "campground", "train_station"
+    }
+
+    resultados_api = []
+    for lugar in data.get("results", []):
+        direccion = lugar.get("formatted_address", "").lower()
+        tipos = set(lugar.get("types", []))
+
+        # 🔸 Filtrar por ubicación
+        if "zacatecas" not in direccion or "méxico" not in direccion:
+            continue
+
+        # 🔸 Filtrar por relevancia turística
+        if not tipos.intersection(tipos_turisticos):
+            continue
+
+        resultados_api.append({
+            "id": None,
+            "nombre": lugar.get("name"),
+            "ubicacion": lugar.get("formatted_address"),
+            "place_id": lugar.get("place_id"),
+            "latitud": lugar["geometry"]["location"]["lat"],
+            "longitud": lugar["geometry"]["location"]["lng"],
+            "tipos": lugar.get("types", []),
+        })
+
+    return JsonResponse({"lugares": resultados_api})
 
 
 
@@ -15,69 +78,114 @@ from django.http import JsonResponse
 def publicar_resena(request):
     if request.method == 'POST':
         form_resena = FormResena(request.POST, request.FILES)
-
-        # Obtener las fotos del request
         fotos = request.FILES.getlist('fotografias')
 
-        # Validar máximo 3 fotos
+        # === Validar cantidad de fotos ===
         if len(fotos) > 3:
             messages.error(request, "Solo puedes subir un máximo de 3 fotografías.")
-        elif form_resena.is_valid():
-            try:
-                # Crear la reseña sin guardar aún
-                resena = form_resena.save(commit=False)
+            return render(request, 'publicacion_form.html', {
+                'form_resena': form_resena,
+                'username': request.user.username
+            })
 
-                # Determinar la fecha de visita
-                actualmente = form_resena.cleaned_data.get('actualmente_en_lugar')
+        try:
+            # === MANEJAR LUGAR TURÍSTICO ===
+            lugar_id = request.POST.get('lugar_turistico')
+            lugar_turistico = None
 
-                if actualmente == 'si':
-                    # Usar la hora actual con timezone
-                    resena.fecha_visita = timezone.now()
-                else:
-                    fecha_manual = form_resena.cleaned_data.get('fecha_visita_manual')
-                    if fecha_manual:
-                        # Asegurar que tenga timezone
-                        if timezone.is_naive(fecha_manual):
-                            resena.fecha_visita = timezone.make_aware(fecha_manual)
-                        else:
-                            resena.fecha_visita = fecha_manual
+            if lugar_id:
+                # Lugar existente en la base de datos
+                lugar_turistico = LugarTuristico.objects.get(id=lugar_id)
+            else:
+                # Crear nuevo lugar desde la API de Google
+                nuevo_nombre = request.POST.get('nuevo_lugar_nombre')
+                nuevo_ubicacion = request.POST.get('nuevo_lugar_ubicacion')
+                nuevo_place_id = request.POST.get('nuevo_lugar_place_id')
+                nuevo_lat = request.POST.get('nuevo_lugar_latitud')
+                nuevo_lng = request.POST.get('nuevo_lugar_longitud')
+                nuevo_tipos = request.POST.get('nuevo_lugar_tipos', '[]')
+
+                if nuevo_nombre and nuevo_ubicacion:
+                    if nuevo_place_id:
+                        lugar_turistico, created = LugarTuristico.objects.get_or_create(
+                            place_id=nuevo_place_id,
+                            defaults={
+                                'nombre': nuevo_nombre,
+                                'ubicacion': nuevo_ubicacion,
+                                'latitud': float(nuevo_lat) if nuevo_lat else None,
+                                'longitud': float(nuevo_lng) if nuevo_lng else None,
+                                'categoria': categorizar_lugar(json.loads(nuevo_tipos))
+                            }
+                        )
                     else:
-                        resena.fecha_visita = timezone.now()
+                        # Crear sin place_id
+                        lugar_turistico = LugarTuristico.objects.create(
+                            nombre=nuevo_nombre,
+                            ubicacion=nuevo_ubicacion,
+                            latitud=float(nuevo_lat) if nuevo_lat else None,
+                            longitud=float(nuevo_lng) if nuevo_lng else None,
+                            categoria='otro'
+                        )
+                else:
+                    messages.error(request, "Debes seleccionar un lugar válido antes de publicar.")
+                    return render(request, 'publicacion_form.html', {
+                        'form_resena': form_resena,
+                        'username': request.user.username
+                    })
 
-                # Debug: imprimir la fecha antes de guardar
-                print(f"Fecha a guardar: {resena.fecha_visita}")
-                print(f"Tipo: {type(resena.fecha_visita)}")
+            # === VALIDAR FORMULARIO ===
+            if not form_resena.is_valid():
+                messages.error(request, "Por favor completa todos los campos requeridos.")
+                return render(request, 'publicacion_form.html', {
+                    'form_resena': form_resena,
+                    'username': request.user.username
+                })
 
-                # Guardar la reseña en la base de datos
-                resena.save()
+            # === CREAR RESEÑA ===
+            resena = form_resena.save(commit=False)
+            resena.lugar_turistico = lugar_turistico
 
-                # Debug: verificar qué se guardó
-                resena.refresh_from_db()
-                print(f"Fecha guardada en DB: {resena.fecha_visita}")
+            # Determinar fecha de visita
+            actualmente = form_resena.cleaned_data.get('actualmente_en_lugar')
+            if actualmente == 'si':
+                resena.fecha_visita = timezone.now()
+            else:
+                fecha_manual = form_resena.cleaned_data.get('fecha_visita_manual')
+                if fecha_manual:
+                    if timezone.is_naive(fecha_manual):
+                        resena.fecha_visita = timezone.make_aware(fecha_manual)
+                    else:
+                        resena.fecha_visita = fecha_manual
+                else:
+                    resena.fecha_visita = timezone.now()
 
-                # Guardar las fotografías asociadas
-                for foto in fotos:
-                    Fotografia.objects.create(resena=resena, fotografia=foto)
+            resena.save()
 
-                # Crear la publicación asociada al turista
-                Publicacion.objects.create(
-                    turista=request.user.datos,  
-                    resena=resena
-                )
+            # === GUARDAR FOTOS ===
+            for foto in fotos:
+                Fotografia.objects.create(resena=resena, fotografia=foto)
 
-                # Mensaje de éxito ANTES de redirigir
-                messages.success(request, "¡Reseña publicada con éxito!")
-                return redirect('inicio:inicio')
+            # === CREAR PUBLICACIÓN ===
+            Publicacion.objects.create(
+                turista=request.user.datos,
+                resena=resena
+            )
 
-            except Exception as e:
-                messages.error(request, f"Error al publicar la reseña: {str(e)}")
-                print(f"Error completo: {e}")
-                import traceback
-                traceback.print_exc()
+            messages.success(request, "¡Reseña publicada con éxito!")
+            return redirect('inicio:inicio')
+
+        except Exception as e:
+            print("Error completo:", e)
+            traceback.print_exc()
+            messages.error(request, f"Error al publicar la reseña: {str(e)}")
+
     else:
         form_resena = FormResena()
 
-    return render(request, 'publicacion_form.html', {'form_resena': form_resena , 'username': request.user.username})
+    return render(request, 'publicacion_form.html', {
+        'form_resena': form_resena,
+        'username': request.user.username
+    })
 
 @login_required
 def eliminar_publicacion(request, publicacion_id):

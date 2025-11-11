@@ -4,15 +4,38 @@
 {% block contenido %}
 <h2 class="text-center mb-4" style="color: #3f3d56;">Publicar Reseña</h2>
 
-
 <form method="POST" enctype="multipart/form-data" id="form-resena" novalidate>
     {% csrf_token %}
 
-    <!-- Lugar turístico -->
+    <!-- Lugar turístico con autocompletado -->
     <div class="mb-3">
-        {{ form_resena.lugar_turistico.label_tag }}
-        {{ form_resena.lugar_turistico }}
-        <small class="text-danger d-none error-msg">Rellena este campo</small>
+        <label for="busqueda-lugar" class="form-label">Lugar Turístico</label>
+        <div class="autocomplete-wrapper" style="position: relative;">
+            <input 
+                type="text" 
+                id="busqueda-lugar" 
+                class="form-control" 
+                placeholder="Buscar lugar en Zacatecas..."
+                autocomplete="off"
+            >
+            <div id="resultados-busqueda" class="autocomplete-results"></div>
+        </div>
+        
+        <!-- Campo oculto con el ID del lugar seleccionado -->
+        <input type="hidden" name="lugar_turistico" id="lugar_turistico_id">
+        
+        <!-- Campos ocultos para datos de nuevo lugar -->
+        <input type="hidden" name="nuevo_lugar_nombre" id="nuevo_lugar_nombre">
+        <input type="hidden" name="nuevo_lugar_ubicacion" id="nuevo_lugar_ubicacion">
+        <input type="hidden" name="nuevo_lugar_place_id" id="nuevo_lugar_place_id">
+        <input type="hidden" name="nuevo_lugar_latitud" id="nuevo_lugar_latitud">
+        <input type="hidden" name="nuevo_lugar_longitud" id="nuevo_lugar_longitud">
+        <input type="hidden" name="nuevo_lugar_tipos" id="nuevo_lugar_tipos">
+        
+        <small class="text-muted">
+            <i class="bi bi-info-circle"></i> Escribe al menos 3 letras para buscar
+        </small>
+        <small class="text-danger d-none error-msg">Selecciona un lugar de la lista</small>
         {% if form_resena.lugar_turistico.errors %}
             <div class="text-danger small">{{ form_resena.lugar_turistico.errors }}</div>
         {% endif %}
@@ -86,7 +109,6 @@
         {% endif %}
     </div>
 
-    <!-- Errores no asociados a campos -->
     {% if form_resena.non_field_errors %}
         <div class="alert alert-danger">
             {{ form_resena.non_field_errors }}
@@ -100,6 +122,66 @@
 </form>
 
 <style>
+.autocomplete-wrapper {
+    position: relative;
+}
+
+.autocomplete-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    display: none;
+}
+
+.autocomplete-results.show {
+    display: block;
+}
+
+.resultado-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s;
+}
+
+.resultado-item:hover {
+    background-color: #f8f9fa;
+}
+
+.resultado-item:last-child {
+    border-bottom: none;
+}
+
+.resultado-nombre {
+    font-weight: 600;
+    color: #3f3d56;
+    margin-bottom: 4px;
+}
+
+.resultado-ubicacion {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.resultado-badge {
+    display: inline-block;
+    background-color: #e9ecef;
+    color: #495057;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    margin-top: 4px;
+}
+
 .upload-area {
     border: 2px solid #e0e0e0;
     border-radius: 12px;
@@ -182,6 +264,105 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // === AUTOCOMPLETADO DE LUGARES ===
+    const busquedaInput = document.getElementById('busqueda-lugar');
+    const resultadosDiv = document.getElementById('resultados-busqueda');
+    const lugarIdInput = document.getElementById('lugar_turistico_id');
+    let timeoutBusqueda;
+
+    busquedaInput.addEventListener('input', function() {
+        clearTimeout(timeoutBusqueda);
+        const query = this.value.trim();
+
+        if (query.length < 3) {
+            resultadosDiv.classList.remove('show');
+            return;
+        }
+
+        timeoutBusqueda = setTimeout(() => {
+            buscarLugares(query);
+        }, 500);
+    });
+
+    async function buscarLugares(query) {
+        try {
+            const response = await fetch(`/inicio/buscar-lugares/?q=${encodeURIComponent(query)}`);
+            const data = await response.json();
+            
+            mostrarResultados(data.lugares);
+        } catch (error) {
+            console.error('Error al buscar lugares:', error);
+        }
+    }
+
+    function mostrarResultados(lugares) {
+        if (lugares.length === 0) {
+            resultadosDiv.innerHTML = '<div class="resultado-item" style="text-align:center;color:#999;">No se encontraron lugares</div>';
+            resultadosDiv.classList.add('show');
+            return;
+        }
+
+        resultadosDiv.innerHTML = '';
+        
+        lugares.forEach(lugar => {
+            const div = document.createElement('div');
+            div.className = 'resultado-item';
+            div.innerHTML = `
+                <div class="resultado-nombre">${lugar.nombre}</div>
+                <div class="resultado-ubicacion">${lugar.ubicacion}</div>
+                ${lugar.id === null ? '<span class="resultado-badge">Nuevo lugar</span>' : ''}
+            `;
+            
+            div.addEventListener('click', () => seleccionarLugar(lugar));
+            resultadosDiv.appendChild(div);
+        });
+
+        resultadosDiv.classList.add('show');
+    }
+
+    function seleccionarLugar(lugar) {
+        busquedaInput.value = lugar.nombre;
+        resultadosDiv.classList.remove('show');
+
+        // Siempre limpiar primero
+        lugarIdInput.value = '';
+        document.getElementById('nuevo_lugar_nombre').value = '';
+        document.getElementById('nuevo_lugar_ubicacion').value = '';
+        document.getElementById('nuevo_lugar_place_id').value = '';
+        document.getElementById('nuevo_lugar_latitud').value = '';
+        document.getElementById('nuevo_lugar_longitud').value = '';
+        document.getElementById('nuevo_lugar_tipos').value = '';
+
+        if (lugar.id) {
+            // Lugar existente en la BD
+            lugarIdInput.value = lugar.id;
+        } else {
+            // Lugar nuevo desde la API
+            document.getElementById('nuevo_lugar_nombre').value = lugar.nombre || '';
+            document.getElementById('nuevo_lugar_ubicacion').value = lugar.ubicacion || '';
+            document.getElementById('nuevo_lugar_place_id').value = lugar.place_id || '';
+            document.getElementById('nuevo_lugar_latitud').value = lugar.latitud || '';
+            document.getElementById('nuevo_lugar_longitud').value = lugar.longitud || '';
+            document.getElementById('nuevo_lugar_tipos').value = JSON.stringify(lugar.tipos || []);
+        }
+
+        // ✅ Debug opcional para verificar que se llenen
+        console.log("Lugar seleccionado:", {
+            id: lugarIdInput.value,
+            nombre: document.getElementById('nuevo_lugar_nombre').value,
+            ubicacion: document.getElementById('nuevo_lugar_ubicacion').value
+        });
+    }
+
+
+    // Cerrar resultados al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        if (!busquedaInput.contains(e.target) && !resultadosDiv.contains(e.target)) {
+            resultadosDiv.classList.remove('show');
+        }
+    });
+
+    // === RADIO BUTTONS FECHA ===
     const radios = document.querySelectorAll('input[name="actualmente_en_lugar"]');
     const fechaDiv = document.getElementById('fecha_hora_input');
     
@@ -196,6 +377,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fechaDiv.style.display = 'block';
     }
 
+    // === MANEJO DE FOTOGRAFÍAS ===
     const uploadArea = document.getElementById('upload-area');
     const uploadButton = document.getElementById('upload-button');
     const inputFotos = document.getElementById('id_fotografias');
@@ -230,7 +412,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function agregarFotos(nuevasFiles) {
-        // 🔒 Filtrar solo imágenes
         nuevasFiles = nuevasFiles.filter(f => f.type.startsWith('image/'));
         if (nuevasFiles.length === 0) {
             alert("Solo se permiten archivos de imagen (JPG, PNG, WEBP).");
@@ -277,24 +458,34 @@ document.addEventListener('DOMContentLoaded', function() {
         actualizarPreview();
     }
 
+    // === ENVÍO DEL FORMULARIO ===
     document.getElementById('form-resena').addEventListener('submit', function(e) {
         const dataTransfer = new DataTransfer();
         fotosArray.forEach(file => dataTransfer.items.add(file));
         inputFotos.files = dataTransfer.files;
 
-        // Validación: mostrar mensajes "Rellena este campo" sin cambiar estilos
+        // Validación del lugar
+        const lugarId = lugarIdInput.value;
+        const nuevoLugarNombre = document.getElementById('nuevo_lugar_nombre').value;
+        
+        if (!lugarId && !nuevoLugarNombre) {
+            e.preventDefault();
+            alert('Debes seleccionar un lugar de la lista');
+            busquedaInput.focus();
+            return;
+        }
+
+        // Validación general de campos
         let valido = true;
-        // Recorremos los contenedores .mb-3 que contienen cada campo
         document.querySelectorAll('#form-resena .mb-3').forEach(div => {
             const input = div.querySelector('input, textarea, select');
             const errorMsg = div.querySelector('.error-msg');
-            // consideramos visible (no oculto) y que exista el input
-            if (input && input.offsetParent !== null) {
+            
+            if (input && input.offsetParent !== null && input.id !== 'busqueda-lugar') {
                 const tipoRadio = input.type === 'radio' || input.type === 'checkbox';
                 let valorVacio = false;
 
                 if (tipoRadio) {
-                    // para radios: comprobar si hay alguno seleccionado dentro del mismo nombre
                     const name = input.name;
                     const seleccionado = document.querySelectorAll('input[name="'+name+'"]:checked').length > 0;
                     if (!seleccionado) valorVacio = true;

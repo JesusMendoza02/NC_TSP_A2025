@@ -1,0 +1,90 @@
+{% extends "base_feed.html" %}
+{% block contenido %}
+<h2 class="text-center mb-4">Ruta hacia {{ lugar.nombre }}</h2>
+
+<!-- Selector de tipo de ruta -->
+<div class="text-center mb-3">
+  <label for="modo-viaje" class="form-label fw-bold">Selecciona tipo de transporte:</label>
+  <select id="modo-viaje" class="form-select w-auto d-inline-block">
+    <option value="DRIVING">🚗 En automóvil</option>
+    <option value="WALKING">🚶‍♂️ Caminando</option>
+    <option value="BICYCLING">🚴‍♀️ En bicicleta</option>
+  </select>
+</div>
+
+<div id="mapa" style="height: 600px; width: 90%; margin: 0 auto; border: 2px solid #ddd; border-radius: 8px;"></div>
+
+<script>
+let mapa, directionsService, directionsRenderer, origen, destino;
+
+window.initMap = function() {
+  destino = { lat: {{ lugar.latitud }}, lng: {{ lugar.longitud }} };
+
+  mapa = new google.maps.Map(document.getElementById("mapa"), {
+    zoom: 13,
+    center: destino
+  });
+
+  directionsService = new google.maps.DirectionsService();
+  directionsRenderer = new google.maps.DirectionsRenderer();
+  directionsRenderer.setMap(mapa);
+
+  const infoWindow = new google.maps.InfoWindow();
+
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        origen = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        calcularRuta("DRIVING"); // modo predeterminado
+      },
+      () => {
+        infoWindow.setPosition(destino);
+        infoWindow.setContent("No se pudo obtener tu ubicación.");
+        infoWindow.open(mapa);
+      }
+    );
+  } else {
+    infoWindow.setPosition(destino);
+    infoWindow.setContent("Tu navegador no soporta geolocalización.");
+    infoWindow.open(mapa);
+  }
+};
+
+// === Calcular la ruta según el modo seleccionado ===
+function calcularRuta(modoViaje) {
+  if (!origen || !destino) return;
+
+  directionsService.route(
+    {
+      origin: origen,
+      destination: destino,
+      travelMode: google.maps.TravelMode[modoViaje]
+    },
+    (response, status) => {
+      if (status === "OK") {
+        directionsRenderer.setDirections(response);
+      } else {
+        alert("No se pudo calcular la ruta: " + status);
+      }
+    }
+  );
+}
+
+// === Escuchar cambios del selector ===
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("modo-viaje").addEventListener("change", (e) => {
+    const modo = e.target.value;
+    calcularRuta(modo);
+  });
+});
+
+window.gm_authFailure = function() {
+  alert("Error de autenticación con la API de Google Maps.");
+};
+</script>
+
+<script src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&callback=initMap" async defer></script>
+{% endblock %}

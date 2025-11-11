@@ -5,7 +5,8 @@ app_name = 'feed'
 
 urlpatterns = [
     path('', views.visualizar_feed, name='inicio'),
-    path('publicar/', views.publicar_resena, name='publicar'),
+    path('buscar-lugares/', views.buscar_lugares, name='buscar_lugares'),
+    path('publicar/', views.publicar_resena, name='publicar'), 
     path('feed/', views.visualizar_feed, name='feed'),
     path('like/<int:publicacion_id>/', views.dar_like, name='dar_like'),
     path('eliminar/<int:publicacion_id>/', views.eliminar_publicacion, name='eliminar_publicacion'),

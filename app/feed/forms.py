@@ -1,11 +1,11 @@
 from django import forms
-from django.forms import ClearableFileInput
 from django.utils import timezone
 from datetime import timedelta
 from django.core.exceptions import ValidationError
-from .models import Resena, LugarTuristico
+from .models import Resena
 
-# ---------- WIDGETS Y CAMPOS PERSONALIZADOS ----------
+
+# ---------- WIDGETS PERSONALIZADOS ----------
 class MultipleFileInput(forms.ClearableFileInput):
     allow_multiple_selected = True
 
@@ -16,54 +16,32 @@ class MultipleFileField(forms.FileField):
         super().__init__(*args, **kwargs)
 
     def clean(self, data, initial=None):
-        single_file_clean = super().clean
+        # Adaptar para listas de archivos múltiples
+        single_clean = super().clean
         if isinstance(data, (list, tuple)):
-            result = [single_file_clean(d, initial) for d in data]
-        else:
-            result = single_file_clean(data, initial)
-        return result
-
-
-class LugarTuristicoChoiceField(forms.ModelChoiceField):
-    """Campo personalizado para mostrar nombre y dirección del lugar"""
-    def label_from_instance(self, obj):
-        return f"{obj.nombre} - {obj.ubicacion}"
+            return [single_clean(d, initial) for d in data]
+        return single_clean(data, initial)
 
 
 # ---------- FORMULARIO PRINCIPAL ----------
 class FormResena(forms.ModelForm):
-    # Campo personalizado para lugar turístico
-    lugar_turistico = LugarTuristicoChoiceField(
-        queryset=LugarTuristico.objects.all(),
-        widget=forms.Select(attrs={
-            'class': 'form-control',
-            'style': 'font-size: 0.95rem;'
-        }),
-        label='Lugar turístico',
-        empty_label="Selecciona un lugar..."
-    )
 
-    # Campo extra para las fotografías
     fotografias = MultipleFileField(
         required=False,
         label='Fotografías (máximo 3)',
         widget=MultipleFileInput(attrs={
             'accept': 'image/*',
-            'class': 'form-control'
+            'class': 'form-control',
         })
     )
 
-    # Campo extra para saber si está actualmente en el lugar
     actualmente_en_lugar = forms.ChoiceField(
         choices=[('si', 'Sí'), ('no', 'No')],
-        widget=forms.RadioSelect(attrs={
-            'class': 'form-check-input'
-        }),
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
         initial='si',
         label='¿Actualmente en el lugar?'
     )
 
-    # Campo condicional para fecha/hora manual
     fecha_visita_manual = forms.DateTimeField(
         required=False,
         widget=forms.DateTimeInput(attrs={
@@ -71,12 +49,13 @@ class FormResena(forms.ModelForm):
             'class': 'form-control'
         }),
         label='Fecha y hora de visita',
-        help_text='Debe ser dentro del último mes y no puede ser una fecha futura'
+        help_text='Debe ser dentro del último mes y no puede ser futura.'
     )
 
     class Meta:
         model = Resena
-        fields = ['lugar_turistico', 'descripcion', 'calificacion']
+        # ⚠️ Quitamos 'lugar_turistico' porque se maneja manualmente en la vista
+        fields = ['descripcion', 'calificacion']
 
         widgets = {
             'descripcion': forms.Textarea(attrs={
@@ -97,40 +76,28 @@ class FormResena(forms.ModelForm):
             'calificacion': 'Calificación (1-10)',
         }
 
-    # ---------- VALIDACIONES PERSONALIZADAS ----------
+    # ---------- VALIDACIONES ----------
     def clean_calificacion(self):
         calificacion = self.cleaned_data.get('calificacion')
-        if calificacion and (calificacion < 1 or calificacion > 10):
-            raise forms.ValidationError("La calificación debe estar entre 1 y 10.")
+        if calificacion is not None and (calificacion < 1 or calificacion > 10):
+            raise ValidationError("La calificación debe estar entre 1 y 10.")
         return calificacion
 
     def clean_fecha_visita_manual(self):
-        """Validar que la fecha esté dentro del último mes y no sea futura"""
         fecha_manual = self.cleaned_data.get('fecha_visita_manual')
 
         if fecha_manual:
             ahora = timezone.now()
-
             if timezone.is_naive(fecha_manual):
                 fecha_manual = timezone.make_aware(fecha_manual)
 
             if fecha_manual > ahora:
-                raise forms.ValidationError(
-                    "No puedes seleccionar una fecha futura. "
-                    "Debe ser de hoy o anterior."
-                )
-
-            hace_un_mes = ahora - timedelta(days=30)
-            if fecha_manual < hace_un_mes:
-                raise forms.ValidationError(
-                    "La fecha de visita debe ser dentro del último mes. "
-                    f"No puede ser anterior al {hace_un_mes.strftime('%d/%m/%Y %H:%M')}."
-                )
-
+                raise ValidationError("No puedes seleccionar una fecha futura.")
+            if fecha_manual < (ahora - timedelta(days=30)):
+                raise ValidationError("La fecha de visita debe ser dentro del último mes.")
         return fecha_manual
 
     def clean_fotografias(self):
-        """Validar que los archivos sean imágenes y no excedan 3."""
         fotos = self.cleaned_data.get('fotografias')
 
         if not fotos:
@@ -143,10 +110,8 @@ class FormResena(forms.ModelForm):
         for foto in fotos:
             if foto.content_type not in formatos_validos:
                 raise ValidationError(
-                    f"El archivo '{foto.name}' no es una imagen válida. "
-                    "Solo se permiten JPG, PNG o WEBP."
+                    f"El archivo '{foto.name}' no es válido. Solo se permiten JPG, PNG o WEBP."
                 )
-
         return fotos
 
     def clean(self):
@@ -155,7 +120,5 @@ class FormResena(forms.ModelForm):
         fecha_manual = cleaned_data.get('fecha_visita_manual')
 
         if actualmente == 'no' and not fecha_manual:
-            self.add_error('fecha_visita_manual',
-                           'Debes proporcionar la fecha y hora de tu visita.')
-
+            self.add_error('fecha_visita_manual', 'Debes indicar la fecha y hora de tu visita.')
         return cleaned_data

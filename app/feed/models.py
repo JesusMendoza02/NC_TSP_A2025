@@ -3,13 +3,34 @@ from django.db import models
 from usuarios.models import Turista
 
 class LugarTuristico(models.Model):
-    nombre = models.CharField(max_length=100)
-    ubicacion = models.CharField(max_length=150)
-    categoria = models.CharField(max_length=50)
+    CATEGORIAS = [
+        ('restaurante', 'Restaurante'),
+        ('bar', 'Bar'),
+        ('cafe', 'Café'),
+        ('museo', 'Museo'),
+        ('parque', 'Parque'),
+        ('monumento', 'Monumento'),
+        ('iglesia', 'Iglesia'), 
+        ('hotel', 'Hotel'),
+        ('centro_comercial', 'Centro Comercial'),  
+        ('tienda', 'Tienda'),  
+        ('entretenimiento', 'Entretenimiento'),  
+        ('otro', 'Otro'),
+    ]
+    
+    nombre = models.CharField(max_length=200)
+    ubicacion = models.CharField(max_length=250)
+    categoria = models.CharField(max_length=50, choices=CATEGORIAS, default='otro')
+    latitud = models.FloatField(null=True, blank=True)
+    longitud = models.FloatField(null=True, blank=True)
+    place_id = models.CharField(max_length=200, unique=True, null=True, blank=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.nombre
     
+    class Meta:
+        verbose_name_plural = "Lugares Turísticos"
 
 class Resena(models.Model):
     lugar_turistico = models.ForeignKey(
@@ -23,8 +44,6 @@ class Resena(models.Model):
 
     def __str__(self):
         return f"Reseña de {self.lugar_turistico} ({self.calificacion}/5)"
-
-
 
 class Publicacion(models.Model):
     fecha_publicacion = models.DateTimeField(auto_now_add=True)

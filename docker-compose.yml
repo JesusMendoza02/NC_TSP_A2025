@@ -21,6 +21,7 @@ services:
       DB_HOST: ${DB_HOST}
       DEBUG: ${DEBUG}
       SECRET_KEY: ${SECRET_KEY}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY}
 
   db:
     image: mariadb
@@ -38,3 +39,6 @@ services:
 
 volumes:
   db:
+
+
+  
