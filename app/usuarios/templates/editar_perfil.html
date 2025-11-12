@@ -1,0 +1,175 @@
+{% extends 'base_feed.html' %} 
+{% load static %}
+
+{% block contenido %}
+<div class="container my-4">
+    <h1 class="page-title-feed text-center mb-5"><i class="bi bi-pencil-square me-2"></i> Editar Perfil</h1> 
+
+    {% if messages %}
+        <div class="messages-container my-3">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} text-center d-block" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="card p-5 shadow-lg mx-auto form-edit-card"> 
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <h3 class="mb-4 text-primary form-section-title">Información de la Cuenta</h3>
+            <div class="row mb-4">
+                
+                <div class="col-md-12 mb-3">
+                    <label for="{{ user_form.username.id_for_label }}" class="form-label fw-bold">{{ user_form.username.label }}</label>
+                    {{ user_form.username }}
+                    {% for error in user_form.username.errors %}
+                        <small class="text-danger d-block">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="{{ user_form.first_name.id_for_label }}" class="form-label fw-bold">{{ user_form.first_name.label }}</label>
+                    {{ user_form.first_name }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="{{ user_form.last_name.id_for_label }}" class="form-label fw-bold">{{ user_form.last_name.label }}</label>
+                    {{ user_form.last_name }}
+                </div>
+                
+                <div class="col-md-12 mb-3">
+                    <label for="{{ user_form.email.id_for_label }}" class="form-label fw-bold">{{ user_form.email.label }}</label>
+                    {{ user_form.email }}
+                    {% for error in user_form.email.errors %}
+                        <small class="text-danger d-block">{{ error }}</small>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <h3 class="mb-4 text-primary mt-4 form-section-title">Detalles del Turista</h3>
+            
+            <div class="row mb-4">
+                <div class="col-md-12 mb-4 d-flex align-items-center gap-4 photo-upload-container">
+                    <div class="flex-shrink-0">
+                        <img id="foto-preview" 
+                             src="{% if turista_form.instance.foto_perfil %}{{ turista_form.instance.foto_perfil.url }}{% else %}{% static 'ruta/a/icono_default.png' %}{% endif %}" 
+                             alt="Foto actual" 
+                             class="rounded-circle" 
+                             width="80" height="80" 
+                             style="object-fit: cover; border: 2px solid var(--primary-color);">
+                    </div>
+                    <div class="flex-grow-1">
+                        <label for="{{ turista_form.foto_perfil.id_for_label }}" class="form-label fw-bold mb-1">{{ turista_form.foto_perfil.label }}</label>
+                        {{ turista_form.foto_perfil }} 
+                        <small class="form-text text-muted">Selecciona un archivo (solo imágenes) para actualizar tu foto.</small>
+                    </div>
+                </div>
+            </div> 
+            
+            <div class="mb-4">
+                <label for="{{ turista_form.biografia.id_for_label }}" class="form-label fw-bold">{{ turista_form.biografia.label }}</label>
+                {{ turista_form.biografia }}
+            </div>
+            
+            <!-- <div class="row mb-4">
+                <div class="col-md-6">
+                    <label for="{{ turista_form.fecha_nac.id_for_label }}" class="form-label fw-bold">{{ turista_form.fecha_nac.label }}</label>
+                    {{ turista_form.fecha_nac }} 
+                    {% for error in turista_form.fecha_nac.errors %}
+                        <small class="text-danger d-block">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                <div class="col-md-6"></div> 
+            </div> -->
+            
+            <h3 class="mb-4 text-primary mt-4 form-section-title">Cambiar Contraseña</h3>
+            <div class="row mb-4"> 
+                <div class="col-md-6 mb-3">
+                    <label for="{{ contrasena_form.new_password.id_for_label }}" class="form-label fw-bold">{{ contrasena_form.new_password.label }}</label>
+                    {{ contrasena_form.new_password }}
+                    {% for error in contrasena_form.new_password.errors %}
+                        <small class="text-danger d-block">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                <div class="col-md-6 mb-4">
+                    <label for="{{ contrasena_form.confirm_password.id_for_label }}" class="form-label fw-bold">{{ contrasena_form.confirm_password.label }}</label>
+                    {{ contrasena_form.confirm_password }}
+                    {% for error in contrasena_form.confirm_password.errors %}
+                        <small class="text-danger d-block">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                {% for error in contrasena_form.non_field_errors %}
+                    <div class="col-12"><div class="alert alert-danger">{{ error }}</div></div>
+                {% endfor %}
+            </div>
+
+            <div class="d-flex justify-content-end gap-3 mt-4">
+                <a href="{% url 'perfil_usuario' username=request.user.username %}" class="btn btn-outline-secondary px-4">Cancelar</a>
+                <button type="submit" class="btn btn-primary px-4" style="background-color: #3f3d56 !important; 
+                border-color: #3f3d56 !important; background-image: none !important;">Guardar Cambios</button> 
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    /* Estilo para los títulos de sección (Corrige el amontonamiento vertical) */
+    .form-edit-card .form-section-title {
+        padding-bottom: 5px;
+        border-bottom: 1px solid #eee;
+        margin-top: 2rem;
+        margin-bottom: 1.5rem !important;
+    }
+
+    /* Asegura que los campos tengan buen espaciado y estilo */
+    .form-edit-card .form-control {
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        border-color: #e0e0e0;
+        transition: border-color 0.2s;
+    }
+    
+    /*  Campo Biografía */
+    .form-edit-card textarea.form-control {
+        min-height: 120px; 
+        resize: vertical;
+        /* Aseguramos que no haya margen superior indeseado */
+        margin-top: 5px; 
+    }
+
+    /* Estilo específico para el input file */
+    .photo-upload-container .form-control[type="file"] {
+        padding: 0.5rem 0.5rem; 
+        line-height: 1.5;
+    }
+    
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const input = document.getElementById('id_foto_perfil'); 
+        const preview = document.getElementById('foto-preview');
+        
+        if (input) {
+            input.addEventListener('change', function() {
+                const file = this.files[0];
+                
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.src = e.target.result;
+                    }
+                    reader.readAsDataURL(file);
+                } else {
+                    if (this.value) { 
+                        alert('Error: Solo se permiten archivos de imagen.');
+                        this.value = ''; 
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock contenido %}
