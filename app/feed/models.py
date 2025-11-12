@@ -1,6 +1,6 @@
-
 from django.db import models
 from usuarios.models import Turista
+from django.utils import timezone
 
 class LugarTuristico(models.Model):
     CATEGORIAS = [
@@ -108,3 +108,47 @@ class Comentario(models.Model):
 
     def __str__(self):
         return f"Comentario de {self.turista} en {self.publicacion}"
+    
+class Notificacion(models.Model):
+    TIPOS = [
+        ('like', 'Like en tu publicación'),
+        ('comentario', 'Comentario en tu publicación'),
+        ('nueva_publicacion', 'Nueva publicación de alguien que sigues'),
+        ('nuevo_seguidor', 'Nuevo seguidor'),
+    ]
+
+    receptor = models.ForeignKey(
+        Turista,
+        on_delete=models.CASCADE,
+        related_name='notificaciones'
+    )
+    emisor = models.ForeignKey(
+        Turista,
+        on_delete=models.CASCADE,
+        related_name='notificaciones_enviadas'
+    )
+    tipo = models.CharField(max_length=20, choices=TIPOS)
+    publicacion = models.ForeignKey(
+        Publicacion,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+    mensaje = models.TextField()
+    leida = models.BooleanField(default=False)
+    fecha = models.DateTimeField(default=timezone.now)
+
+    # nuevo campo opcional para vincular un perfil
+    perfil_usuario = models.ForeignKey(
+        Turista,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='notificaciones_perfil'
+    )
+
+    class Meta:
+        ordering = ['-fecha']
+
+    def __str__(self):
+        return f"{self.receptor} - {self.tipo}"

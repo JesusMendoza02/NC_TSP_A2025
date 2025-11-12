@@ -13,4 +13,7 @@ urlpatterns = [
     path('comentario/<int:publicacion_id>/', views.escribir_comentario, name='escribir_comentario'),
     path('comentario/eliminar/<int:comentario_id>/', views.eliminar_comentario, name='eliminar_comentario'),
     path('publicacion/<int:publicacion_id>/', views.detalle_publicacion, name='detalle_publicacion'),
+    path('notificaciones/', views.obtener_notificaciones, name='obtener_notificaciones'),
+    path('publicacion/<int:pk>/', views.detalle_publicacion, name='detalle_publicacion'),
+    path('notificacion/<int:notificacion_id>/', views.abrir_notificacion, name='abrir_notificacion'),
 ]
