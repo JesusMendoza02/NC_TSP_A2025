@@ -3,7 +3,22 @@
 {% load static %}
 {% block contenido %}
 
-<div class="container my-4">
+<div class="container my-4 position-relative">
+    <!-- 🔔 CAMPANA DE NOTIFICACIONES (IZQUIERDA) -->
+    <div class="notificaciones-wrapper">
+        <button id="btn-notificaciones" class="btn btn-outline-secondary position-relative shadow-sm">
+            <i class="bi bi-bell" style="font-size: 1.6rem;"></i>
+            <span id="contador-notificaciones"
+                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                style="font-size: 0.7rem;"></span>
+        </button>
+
+        <div id="lista-notificaciones"
+            class="dropdown-menu shadow-sm border-0 p-0"
+            style="display:none; position:absolute; left:0; top:50px; width:320px; max-height:400px; overflow-y:auto; border-radius:1rem;">
+        </div>
+    </div>
+
     <h2 class="text-center mb-4 page-title-feed">Inicio</h2>
 
     <!-- 🔹 Filtro -->
@@ -106,7 +121,6 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <strong class="text-dark">{{ comentario.turista.usuario.username }}</strong>
                                 <small class="text-muted">{{ comentario.fecha_creacion|date:"d M Y, H:i" }}</small>
-
                             </div>
                             <p class="mb-0 text-muted" style="font-size: 0.9rem;">{{ comentario.texto }}</p>
                         </div>
@@ -153,102 +167,83 @@
     {% endif %}
 </div>
 
-<!-- JS Likes y Cargar más -->
+<!-- 🔹 JS Campana -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // ===== CARGAR MÁS =====
-    const items = document.querySelectorAll('.feed-item');
-    const loadMoreBtn = document.getElementById('load-more');
-    const itemsPerPage = 10;
-    let currentVisible = 10;
+    const btnCampana = document.getElementById('btn-notificaciones');
+    const listaNotificaciones = document.getElementById('lista-notificaciones');
+    const contador = document.getElementById('contador-notificaciones');
+    if (!btnCampana || !listaNotificaciones) return;
+    let visible = false;
 
-    if (loadMoreBtn) {
-        loadMoreBtn.addEventListener('click', () => {
-            const next = currentVisible + itemsPerPage;
-            for (let i = currentVisible; i < next && i < items.length; i++) {
-                items[i].style.display = 'block';
-            }
-            currentVisible = next;
-            if (currentVisible >= items.length) {
-                loadMoreBtn.style.display = 'none';
-            }
-        });
-    }
+    btnCampana.addEventListener('click', async () => {
+        visible = !visible;
+        listaNotificaciones.style.display = visible ? 'block' : 'none';
+        if (visible) await cargarNotificaciones();
+    });
 
-    // ===== LIKES SIN RECARGAR =====
-
-    // Función para obtener el token CSRF
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
-
-    const csrftoken = getCookie('csrftoken');
-
-    // Evento de click en cada botón de like
-    document.querySelectorAll('.btn-like').forEach(button => {
-        button.addEventListener('click', async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const pubId = button.dataset.pubId;
-            if (!pubId) {
-                console.error('❌ No se encontró el ID de la publicación');
+    async function cargarNotificaciones() {
+        try {
+            const response = await fetch("{% url 'feed:obtener_notificaciones' %}");
+            if (!response.ok) throw new Error("Error al obtener notificaciones");
+            const data = await response.json();
+            listaNotificaciones.innerHTML = '';
+            if (data.notificaciones.length === 0) {
+                listaNotificaciones.innerHTML = '<div class="p-3 text-center text-muted">No tienes notificaciones</div>';
+                contador.textContent = '';
                 return;
             }
+            data.notificaciones.forEach(n => {
+                const item = document.createElement('a');
+                item.href = n.url;
+                item.className = 'dropdown-item py-2 px-3 border-bottom';
+                item.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-${n.icono} me-2 text-primary"></i>
+                        <div>
+                            <div class="small fw-semibold">${n.texto}</div>
+                            <div class="small text-muted">${n.tiempo}</div>
+                        </div>
+                    </div>`;
+                listaNotificaciones.appendChild(item);
+            });
+            contador.textContent = data.nuevas > 0 ? data.nuevas : '';
+        } catch (err) {
+            console.error('Error al cargar notificaciones:', err);
+        }
+    }
 
-            try {
-                const url = "{% url 'feed:dar_like' 999999 %}".replace('999999', pubId);
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': csrftoken,
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-
-                if (!response.ok) {
-                    console.error('❌ Error en la respuesta del servidor:', response.status);
-                    return;
-                }
-
-                const data = await response.json();
-                const likeSection = button.closest('.like-section');
-                const countElement = likeSection.querySelector('.like-count');
-
-                // Cambiar estado visual
-                if (data.liked) {
-                    button.classList.add('liked');
-                } else {
-                    button.classList.remove('liked');
-                }
-
-                // Actualizar contador
-                countElement.textContent = `${data.total_likes} Likes`;
-
-            } catch (error) {
-                console.error('⚠️ Error al enviar el like:', error);
-            }
-        });
-    });
+    cargarNotificaciones();
 });
 </script>
 
-
-
 <!-- 🔹 Estilos -->
 <style>
+/* Campana (izquierda) */
+.notificaciones-wrapper {
+    position: absolute;
+    top: 1rem;
+    left: 1.5rem;
+    z-index: 1050;
+}
+@media (max-width: 768px) {
+    .notificaciones-wrapper {
+        top: 0.8rem;
+        left: 0.8rem;
+    }
+}
+.btn-outline-secondary {
+    border: none;
+    background-color: #fff;
+    color: #555;
+    transition: all 0.2s ease-in-out;
+}
+.btn-outline-secondary:hover {
+    color: #0d6efd;
+    background-color: #f0f8ff;
+}
+
+/* Resto de estilos */
 .filter-form select {
     border: 1px solid #ddd;
     border-radius: 8px;
@@ -263,15 +258,12 @@ document.addEventListener('DOMContentLoaded', () => {
     transition: color 0.2s ease-in-out;
 }
 .btn-filter:hover, .btn-clear:hover { color: #0d6efd; }
-
-/* Botón Ver más - más elegante */
 .btn-vermas {
     background-color: #0d6efd;
     color: #fff;
     border: none;
     border-radius: 30px;
     font-weight: 500;
-    letter-spacing: 0.3px;
     transition: all 0.25s ease-in-out;
 }
 .btn-vermas:hover {
@@ -279,14 +271,9 @@ document.addEventListener('DOMContentLoaded', () => {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(13,110,253,0.3);
 }
-
-/* Comentarios */
 .comentarios-section {
     font-family: 'Inter', sans-serif;
     font-size: 0.92rem;
-}
-.comentario-item strong {
-    color: #333;
 }
 </style>
 
