@@ -138,7 +138,6 @@ class Notificacion(models.Model):
     leida = models.BooleanField(default=False)
     fecha = models.DateTimeField(default=timezone.now)
 
-    # nuevo campo opcional para vincular un perfil
     perfil_usuario = models.ForeignKey(
         Turista,
         on_delete=models.CASCADE,

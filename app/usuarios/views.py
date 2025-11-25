@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from .forms import FormUser, FormTurista, FormEdicionUser, FormEdicionTurista, FormCambiarContrasena
 from feed.models import Publicacion, Like
 from .models import Turista, Seguidor
+from feed.models import Notificacion
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -144,21 +145,38 @@ def seguidores(request, username=None):
 
 @login_required
 def toggle_seguir(request, turista_id):
-    turista_a_seguir = get_object_or_404(Turista, id=turista_id)
-    turista_actual = request.user.datos
+    seguido = get_object_or_404(Turista, id=turista_id)   
+    seguidor = request.user.datos                          
 
-    if turista_actual == turista_a_seguir:
-        return redirect('perfil_usuario',turista_a_seguir.usuario.username)  
+    if seguido == seguidor:
+        return redirect('perfil_usuario', seguido.usuario.username)
 
-    relacion, creado = Seguidor.objects.get_or_create(
-        turista_seguidor=turista_actual,
-        turista_seguido=turista_a_seguir
+
+    relacion, creada = Seguidor.objects.get_or_create(
+        turista_seguidor=seguidor,
+        turista_seguido=seguido
     )
 
-    if not creado:  
+    if not creada:
+        Notificacion.objects.filter(
+            tipo='nuevo_seguidor',
+            emisor=seguidor,
+            receptor=seguido
+        ).delete()
+
         relacion.delete()
 
-    return redirect('perfil_usuario', turista_a_seguir.usuario.username)
+    else:
+        Notificacion.objects.get_or_create(
+            tipo='nuevo_seguidor',
+            emisor=seguidor,
+            receptor=seguido,
+            defaults={
+                'mensaje': f"{seguidor.usuario.username} comenzó a seguirte."
+            }
+        )
+
+    return redirect('perfil_usuario', seguido.usuario.username)
 
 
 @login_required
@@ -187,13 +205,11 @@ def editar_perfil(request):
         perfil_actualizado = False
         contrasena_cambiada = False
         
-        #Manejar Edición de Perfil (User/Turista)
         if user_form.is_valid() and turista_form.is_valid():
             user = user_form.save()
             turista_form.save()
             perfil_actualizado = True
         
-        #Manejar Cambio de Contraseña 
         new_password_input = contrasena_form.data.get('new_password')
         
         if new_password_input and new_password_input.strip(): 
@@ -210,7 +226,6 @@ def editar_perfil(request):
                     'turista': turista_actual
                 })
 
-        #Mensajes finales basados en el resultado
         if perfil_actualizado and contrasena_cambiada:
             messages.success(request, '¡Perfil y Contraseña actualizados con éxito! 🎉')
         elif perfil_actualizado:
@@ -218,7 +233,6 @@ def editar_perfil(request):
         elif contrasena_cambiada:
             messages.success(request, '¡Contraseña actualizada con éxito! (El perfil no fue modificado) 🎉')
         
-        #Redirección final
         if perfil_actualizado or contrasena_cambiada:
             return redirect('perfil_usuario', username=request.user.username)
         

@@ -167,55 +167,179 @@
     {% endif %}
 </div>
 
-<!-- 🔹 JS Campana -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+
+    /* ===============================
+       🔹 CSRF TOKEN
+       =============================== */
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            document.cookie.split(';').forEach(cookie => {
+                const [k, v] = cookie.trim().split('=');
+                if (k === name) cookieValue = decodeURIComponent(v);
+            });
+        }
+        return cookieValue;
+    }
+
+    const csrftoken = getCookie('csrftoken');
+
+
+    /* ===============================
+       🔹 LIKES
+       =============================== */
+    document.querySelectorAll('.btn-like').forEach(button => {
+        button.addEventListener('click', async () => {
+            const pubId = button.dataset.pubId;
+            if (!pubId) return;
+
+            try {
+                const response = await fetch("{% url 'feed:dar_like' 0 %}".replace('0', pubId), {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({})
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const countElement = button.closest('.like-section').querySelector('.like-count');
+
+                    if (data.liked) button.classList.add('liked');
+                    else button.classList.remove('liked');
+
+                    countElement.textContent = `${data.total_likes} Likes`;
+                }
+            } catch (err) {
+                console.error('Error al dar like:', err);
+            }
+        });
+    });
+
+
+
+    /* ===============================
+       🔹 CAMPANA DE NOTIFICACIONES
+       =============================== */
+
     const btnCampana = document.getElementById('btn-notificaciones');
     const listaNotificaciones = document.getElementById('lista-notificaciones');
     const contador = document.getElementById('contador-notificaciones');
-    if (!btnCampana || !listaNotificaciones) return;
+
+    if (!btnCampana || !listaNotificaciones || !contador) return;
+
+    /* 🔹 Mostrar contador al cargar la página */
+    actualizarContador();
+
     let visible = false;
 
     btnCampana.addEventListener('click', async () => {
         visible = !visible;
-        listaNotificaciones.style.display = visible ? 'block' : 'none';
-        if (visible) await cargarNotificaciones();
+
+        if (visible) {
+            listaNotificaciones.style.display = 'block';
+            await cargarNotificaciones();
+        } else {
+            listaNotificaciones.style.display = 'none';
+            await limpiarNotificaciones();
+            contador.textContent = "";
+        }
     });
 
+
+
+
+    /* ===============================
+       🔹 Cargar notificaciones
+       =============================== */
     async function cargarNotificaciones() {
         try {
             const response = await fetch("{% url 'feed:obtener_notificaciones' %}");
             if (!response.ok) throw new Error("Error al obtener notificaciones");
+
             const data = await response.json();
             listaNotificaciones.innerHTML = '';
+
             if (data.notificaciones.length === 0) {
-                listaNotificaciones.innerHTML = '<div class="p-3 text-center text-muted">No tienes notificaciones</div>';
-                contador.textContent = '';
+                listaNotificaciones.innerHTML = `
+                    <div class="p-3 text-center text-muted">
+                        No tienes notificaciones
+                    </div>`;
+                contador.textContent = "";
                 return;
             }
+
             data.notificaciones.forEach(n => {
-                const item = document.createElement('a');
-                item.href = n.url;
+                const item = document.createElement('div');
                 item.className = 'dropdown-item py-2 px-3 border-bottom';
+                item.style.cursor = "default";  // no cliqueable
+
                 item.innerHTML = `
                     <div class="d-flex align-items-center">
-                        <i class="bi bi-${n.icono} me-2 text-primary"></i>
+                        <i class="${n.icono} me-2"></i>
                         <div>
                             <div class="small fw-semibold">${n.texto}</div>
                             <div class="small text-muted">${n.tiempo}</div>
                         </div>
-                    </div>`;
+                    </div>
+                `;
+
                 listaNotificaciones.appendChild(item);
             });
+
             contador.textContent = data.nuevas > 0 ? data.nuevas : '';
+
         } catch (err) {
-            console.error('Error al cargar notificaciones:', err);
+            console.error("Error al cargar notificaciones:", err);
         }
     }
 
-    cargarNotificaciones();
+
+
+    /* ===============================
+       🔹 Actualizar contador al cargar
+       =============================== */
+    async function actualizarContador() {
+        try {
+            const response = await fetch("{% url 'feed:obtener_notificaciones' %}");
+            if (!response.ok) return;
+
+            const data = await response.json();
+            contador.textContent = data.nuevas > 0 ? data.nuevas : "";
+
+        } catch (err) {
+            console.error("Error actualizando contador:", err);
+        }
+    }
+
+
+
+
+    /* ===============================
+       🔹 Limpiar NOTIFICACIONES
+       =============================== */
+    async function limpiarNotificaciones() {
+        try {
+            await fetch("{% url 'feed:limpiar_notificaciones' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+        } catch (err) {
+            console.error("Error limpiando notificaciones:", err);
+        }
+    }
+
 });
 </script>
+
 
 <!-- 🔹 Estilos -->
 <style>

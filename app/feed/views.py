@@ -262,18 +262,39 @@ def visualizar_feed(request):
 def dar_like(request, publicacion_id):
     publicacion = get_object_or_404(Publicacion, id=publicacion_id)
     turista = request.user.datos
-    
+
     if publicacion.turista == turista:
         return JsonResponse({'error': 'No puedes dar like a tu propia publicación.'}, status=400)
 
+    # --- Toggle del like ---
     like, creado = Like.objects.get_or_create(publicacion=publicacion, turista=turista)
 
     if not creado:
+        # Se quitó el like → eliminar notificación existente
+        Notificacion.objects.filter(
+            tipo='like',
+            emisor=turista,
+            receptor=publicacion.turista,
+            publicacion=publicacion
+        ).delete()
+
         like.delete()
         liked = False
     else:
         liked = True
 
+        # Solo crear notificación si NO existe
+        Notificacion.objects.get_or_create(
+            tipo='like',
+            emisor=turista,
+            receptor=publicacion.turista,
+            publicacion=publicacion,
+            defaults={
+                'mensaje': f"{turista.usuario.username} le dio like a tu publicación."
+            }
+        )
+
+    # Actualizar contador
     publicacion.reaccion = publicacion.likes.count()
     publicacion.save(update_fields=['reaccion'])
 
@@ -281,6 +302,7 @@ def dar_like(request, publicacion_id):
         'liked': liked,
         'total_likes': publicacion.reaccion
     })
+
 
 
 
@@ -361,8 +383,8 @@ def obtener_notificaciones(request):
 
     data = []
     for n in qs:
-        # La URL redirige a la vista que marca como leída y abre el destino
-        url = reverse('feed:abrir_notificacion', args=[n.id])
+        
+        url = "#" 
 
         # Ícono según tipo
         if n.tipo == 'like':
@@ -383,7 +405,7 @@ def obtener_notificaciones(request):
             'mensaje': texto,
             'texto': texto,  # compatibilidad para feed
             'fecha': n.fecha.strftime('%d/%m/%Y %H:%M'),
-            'tiempo': timesince(n.fecha).split(',')[0] + " atrás",
+            'tiempo': timesince(n.fecha) + " atrás",
             'leida': n.leida,
             'url': url,
             'icono': icono,
@@ -395,21 +417,10 @@ def obtener_notificaciones(request):
 
 
 @login_required
-def abrir_notificacion(request, notificacion_id):
-    """
-    Marca una notificación como leída y redirige a su destino.
-    """
-    notificacion = get_object_or_404(Notificacion, id=notificacion_id, receptor=request.user.datos)
+def limpiar_notificaciones(request):
+    Notificacion.objects.filter(
+        receptor=request.user.datos,
+        leida=False
+    ).delete()
 
-    # 🔹 Marcar como leída
-    if notificacion.leida is False:
-        notificacion.leida = True
-        notificacion.save()
-
-    # 🔹 Redirigir según el tipo
-    if notificacion.tipo in ['like', 'comentario', 'nueva_publicacion'] and notificacion.publicacion:
-        return redirect('feed:detalle_publicacion', notificacion.publicacion.id)
-    elif notificacion.tipo == 'nuevo_seguidor' and notificacion.perfil_usuario:
-        return redirect('perfil_usuario', notificacion.perfil_usuario.usuario.username)
-    else:
-        return redirect('feed:inicio')
+    return JsonResponse({'status': 'ok'})
