@@ -185,54 +185,71 @@ def editar_perfil(request):
     turista_actual = request.user.datos 
     
     if request.method == 'POST':
+
         if 'fecha_nac' in request.POST and not request.POST['fecha_nac']:
             post_data = request.POST.copy()
             
             if turista_actual.fecha_nac:
                 post_data['fecha_nac'] = turista_actual.fecha_nac.isoformat()
-            else:
-                 pass
-            
+
             user_form = FormEdicionUser(post_data, instance=request.user)
             turista_form = FormEdicionTurista(post_data, request.FILES, instance=turista_actual)
             contrasena_form = FormCambiarContrasena(post_data)
+
         else:
             user_form = FormEdicionUser(request.POST, instance=request.user)
             turista_form = FormEdicionTurista(request.POST, request.FILES, instance=turista_actual)
             contrasena_form = FormCambiarContrasena(request.POST)
 
-
         perfil_actualizado = False
         contrasena_cambiada = False
-        
+
+
+        # ===============================
+        # 1) VALIDAR USER + TURISTA
+        # ===============================
         if user_form.is_valid() and turista_form.is_valid():
             user = user_form.save()
             turista_form.save()
             perfil_actualizado = True
-        
-        new_password_input = contrasena_form.data.get('new_password')
-        
-        if new_password_input and new_password_input.strip(): 
-            if contrasena_form.is_valid():
-                user.set_password(contrasena_form.cleaned_data['new_password'])
+
+
+        # ===============================
+        # 2) VALIDAR CONTRASEÑA (CORREGIDO)
+        # ===============================
+        if contrasena_form.is_valid():
+            new_password = contrasena_form.cleaned_data.get("new_password")
+
+            # Solo si escribieron una nueva contraseña
+            if new_password:
+                user.set_password(new_password)
                 user.save()
                 update_session_auth_hash(request, user)
                 contrasena_cambiada = True
-            else:
-                return render(request, 'editar_perfil.html', {
-                    'user_form': user_form,
-                    'turista_form': turista_form,
-                    'contrasena_form': contrasena_form, 
-                    'turista': turista_actual
-                })
 
+        else:
+            # Mostrar errores del form de contraseña
+            return render(request, 'editar_perfil.html', {
+                'user_form': user_form,
+                'turista_form': turista_form,
+                'contrasena_form': contrasena_form,
+                'turista': turista_actual
+            })
+
+
+        # ===============================
+        # MENSAJES
+        # ===============================
         if perfil_actualizado and contrasena_cambiada:
             messages.success(request, '¡Perfil y Contraseña actualizados con éxito! 🎉')
+
         elif perfil_actualizado:
             messages.success(request, '¡Tu perfil ha sido actualizado con éxito! 🎉')
+
         elif contrasena_cambiada:
             messages.success(request, '¡Contraseña actualizada con éxito! (El perfil no fue modificado) 🎉')
-        
+
+
         if perfil_actualizado or contrasena_cambiada:
             return redirect('perfil_usuario', username=request.user.username)
         
@@ -241,11 +258,9 @@ def editar_perfil(request):
         turista_form = FormEdicionTurista(instance=turista_actual)
         contrasena_form = FormCambiarContrasena()
 
-    context = {
+    return render(request, 'editar_perfil.html', {
         'user_form': user_form,
         'turista_form': turista_form,
         'contrasena_form': contrasena_form,
         'turista': turista_actual
-    }
-    
-    return render(request, 'editar_perfil.html', context)
+    })
