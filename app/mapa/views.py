@@ -1,7 +1,9 @@
 from django.shortcuts import render, get_object_or_404
 from django.conf import settings
 from feed.models import LugarTuristico
+from django.contrib.auth.decorators import login_required
 
+@login_required
 def mapa_view(request, lugar_id):
     """Muestra el mapa con la ruta desde la ubicación actual del usuario hasta el lugar."""
     lugar = get_object_or_404(LugarTuristico, id=lugar_id)

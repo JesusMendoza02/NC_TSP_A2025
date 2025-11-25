@@ -15,57 +15,45 @@ import requests
 from django.conf import settings
 import json
 
-
+@login_required
 def buscar_lugares(request):
-    query = request.GET.get("q", "")
+    import requests
+    from django.http import JsonResponse
+    from django.conf import settings
+
+    query = request.GET.get("q", "").strip()
     if not query:
         return JsonResponse({"lugares": []})
 
     api_key = settings.GOOGLE_MAPS_API_KEY
 
-    # Coordenadas del centro de Zacatecas, Zacatecas
+    # Centro de Zacatecas
     lat = 22.7740
     lng = -102.5720
-    radio = 25000  # 25 km de radio
+    radio = 25000  # 25 km
 
+    # VERSION MAS SIMPLE Y COMPATIBLE
     url = (
-        f"https://maps.googleapis.com/maps/api/place/textsearch/json"
-        f"?query={query}"
+        "https://maps.googleapis.com/maps/api/place/textsearch/json"
+        f"?query={query}+zacatecas"
         f"&location={lat},{lng}"
         f"&radius={radio}"
         f"&language=es"
         f"&key={api_key}"
     )
 
+    print("\n\nURL USADA PARA GOOGLE:\n", url, "\n\n")  # 🔥 IMPORTANTE PARA DEBUG
+
     response = requests.get(url)
     data = response.json()
 
-    # 🔹 Tipos de lugares turísticos o de interés
-    tipos_turisticos = {
-        "tourist_attraction", "natural_feature", "point_of_interest", "museum", "church",
-        "park", "natural_feature", "art_gallery", "zoo", "amusement_park",
-        "hindu_temple", "mosque", "synagogue", "place_of_worship",
-        "city_hall", "library", "aquarium", "stadium", "university",
-        "cemetery", "establishment", "rv_park", "campground", "train_station"
-    }
-
     resultados_api = []
+
     for lugar in data.get("results", []):
-        direccion = lugar.get("formatted_address", "").lower()
-        tipos = set(lugar.get("types", []))
-
-        # 🔸 Filtrar por ubicación
-        if "zacatecas" not in direccion or "méxico" not in direccion:
-            continue
-
-        # 🔸 Filtrar por relevancia turística
-        if not tipos.intersection(tipos_turisticos):
-            continue
-
         resultados_api.append({
             "id": None,
             "nombre": lugar.get("name"),
-            "ubicacion": lugar.get("formatted_address"),
+            "ubicacion": lugar.get("formatted_address", ""),
             "place_id": lugar.get("place_id"),
             "latitud": lugar["geometry"]["location"]["lat"],
             "longitud": lugar["geometry"]["location"]["lng"],
@@ -73,6 +61,9 @@ def buscar_lugares(request):
         })
 
     return JsonResponse({"lugares": resultados_api})
+
+
+
 
 
 
