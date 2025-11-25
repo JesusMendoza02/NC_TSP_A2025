@@ -95,7 +95,7 @@
                     </label>
 
                     {{ contrasena_form.new_password }}
-                    
+
                     <small class="text-danger error-msg {% if not contrasena_form.errors %}d-none{% endif %}">
                         {% for field, errs in contrasena_form.errors.items %}
                             {% for e in errs %}
@@ -118,7 +118,8 @@
 
             <div class="d-flex justify-content-end gap-3 mt-4">
                 <a href="{% url 'perfil_usuario' username=request.user.username %}" class="btn btn-outline-secondary px-4">Cancelar</a>
-                <button type="submit" class="btn btn-primary px-4" style="background-color: #3f3d56 !important; border-color: #3f3d56 !important;">Guardar Cambios</button> 
+                <button type="submit" class="btn btn-primary px-4" style="background-color: #3f3d56 !important; 
+                border-color: #3f3d56 !important; background-image: none !important;">Guardar Cambios</button> 
             </div>
         </form>
     </div>
