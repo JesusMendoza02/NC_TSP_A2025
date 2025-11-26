@@ -240,14 +240,10 @@ def editar_perfil(request):
         # ===============================
         # MENSAJES
         # ===============================
-        if perfil_actualizado and contrasena_cambiada:
-            messages.success(request, '¡Perfil y Contraseña actualizados con éxito!')
 
-        elif perfil_actualizado:
+        if perfil_actualizado:
             messages.success(request, '¡Tu perfil ha sido actualizado con éxito!')
 
-        elif contrasena_cambiada:
-            messages.success(request, '¡Contraseña actualizada con éxito! (El perfil no fue modificado)')
 
 
         if perfil_actualizado or contrasena_cambiada:
