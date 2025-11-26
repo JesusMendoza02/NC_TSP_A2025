@@ -112,12 +112,6 @@ window.initMap = function () {
             return;
         }
 
-        // Verificación extra: que sea Zacatecas capital
-        if (!place.formatted_address.toLowerCase().includes("zacatecas")) {
-            Swal.fire("Fuera de Zacatecas", "Solo puedes usar direcciones dentro de Zacatecas capital.", "warning");
-            return;
-        }
-
         origen = {
             lat: place.geometry.location.lat(),
             lng: place.geometry.location.lng()
@@ -153,7 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     lng: pos.coords.longitude
                 };
 
-                Swal.fire("Listo", "Tu ubicación ha sido detectada.", "success");
+                Swal.fire("Listo", "Ahora elige un tipo de transporte.", "success");
             },
             () => Swal.fire("Error", "No se pudo obtener tu ubicación.", "error"),
             {
