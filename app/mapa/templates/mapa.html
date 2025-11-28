@@ -57,6 +57,7 @@ let mapa, directionsService, directionsRenderer;
 let origen = null;
 let destino = { lat: {{ lugar.latitud }}, lng: {{ lugar.longitud }} };
 let autocomplete;
+let modoTransporte = ""; // Variable para guardar el modo de transporte actual
 
 // ================================
 // LIMITAR SOLO A ZACATECAS CAPITAL
@@ -104,7 +105,7 @@ window.initMap = function () {
         }
     );
 
-    autocomplete.addListener("place_changed", () => {
+    autocomplete.addListener("place_changed", async () => {
         const place = autocomplete.getPlace();
 
         if (!place.geometry) {
@@ -117,7 +118,19 @@ window.initMap = function () {
             lng: place.geometry.location.lng()
         };
 
-        Swal.fire("Ubicación lista", "Ahora elige un tipo de transporte.", "success");
+        // Si ya hay un modo de transporte seleccionado, recalcular automáticamente
+        if (modoTransporte) {
+            Swal.fire({
+                icon: "success",
+                title: "Ubicación actualizada",
+                text: "Recalculando ruta...",
+                timer: 1500,
+                showConfirmButton: false
+            });
+            calcularRuta(modoTransporte);
+        } else {
+            Swal.fire("Ubicación lista", "Ahora elige un tipo de transporte.", "success");
+        }
     });
 };
 
@@ -147,7 +160,19 @@ document.addEventListener("DOMContentLoaded", () => {
                     lng: pos.coords.longitude
                 };
 
-                Swal.fire("Listo", "Ahora elige un tipo de transporte.", "success");
+                // Si ya hay un modo de transporte seleccionado, recalcular automáticamente
+                if (modoTransporte) {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Ubicación obtenida",
+                        text: "Recalculando ruta...",
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    calcularRuta(modoTransporte);
+                } else {
+                    Swal.fire("Listo", "Ahora elige un tipo de transporte.", "success");
+                }
             },
             () => Swal.fire("Error", "No se pudo obtener tu ubicación.", "error"),
             {
@@ -163,6 +188,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const modo = e.target.value;
 
         if (!modo) return;
+
+        // Guardar el modo de transporte seleccionado
+        modoTransporte = modo;
 
         // Si no hay origen aún, intentar geocodificar texto
         if (!origen) {
