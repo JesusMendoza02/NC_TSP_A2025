@@ -1,7 +1,18 @@
 {% extends "base_feed.html" %}
 {% block contenido %}
 
-<h2 class="text-center mb-4">Ruta hacia {{ lugar.nombre }}</h2>
+<!-- Botón de regresar -->
+<div class="container-fluid px-3 px-md-4 pt-3">
+    <a href="javascript:history.back()" 
+       class="btn btn-regresar d-inline-flex align-items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+        </svg>
+        <span class="d-none d-sm-inline">Regresar</span>
+    </a>
+</div>
+
+<h2 class="text-center mb-4 mt-3">Ruta hacia {{ lugar.nombre }}</h2>
 
 <div class="container mb-3">
 
@@ -118,19 +129,20 @@ window.initMap = function () {
             lng: place.geometry.location.lng()
         };
 
-        // Si ya hay un modo de transporte seleccionado, recalcular automáticamente
-        if (modoTransporte) {
-            Swal.fire({
-                icon: "success",
-                title: "Ubicación actualizada",
-                text: "Recalculando ruta...",
-                timer: 1500,
-                showConfirmButton: false
-            });
-            calcularRuta(modoTransporte);
-        } else {
-            Swal.fire("Ubicación lista", "Ahora elige un tipo de transporte.", "success");
-        }
+        // Reiniciar transporte y limpiar ruta
+        modoTransporte = "";
+        document.getElementById("modo-viaje").value = "";
+        document.getElementById("info-ruta").style.display = "none";
+        directionsRenderer.setDirections({routes: []});
+
+        // Mostrar mensaje para elegir transporte
+        Swal.fire({
+            icon: "success",
+            title: "Ubicación lista",
+            text: "Ahora elige un tipo de transporte.",
+            confirmButtonText: "OK",
+            confirmButtonColor: "#524f7d"
+        });
     });
 };
 
@@ -160,19 +172,20 @@ document.addEventListener("DOMContentLoaded", () => {
                     lng: pos.coords.longitude
                 };
 
-                // Si ya hay un modo de transporte seleccionado, recalcular automáticamente
-                if (modoTransporte) {
-                    Swal.fire({
-                        icon: "success",
-                        title: "Ubicación obtenida",
-                        text: "Recalculando ruta...",
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
-                    calcularRuta(modoTransporte);
-                } else {
-                    Swal.fire("Listo", "Ahora elige un tipo de transporte.", "success");
-                }
+                // Reiniciar transporte y limpiar ruta
+                modoTransporte = "";
+                document.getElementById("modo-viaje").value = "";
+                document.getElementById("info-ruta").style.display = "none";
+                directionsRenderer.setDirections({routes: []});
+
+                // Mostrar mensaje para elegir transporte
+                Swal.fire({
+                    icon: "success",
+                    title: "Listo",
+                    text: "Ahora elige un tipo de transporte.",
+                    confirmButtonText: "OK",
+                    confirmButtonColor: "#524f7d"
+                });
             },
             () => Swal.fire("Error", "No se pudo obtener tu ubicación.", "error"),
             {
@@ -196,17 +209,42 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!origen) {
             const texto = document.getElementById("direccion-input").value.trim();
             if (!texto) {
-                Swal.fire("Falta tu ubicación", "Ingresa una dirección o usa el GPS.", "warning");
+                // Reiniciar todo si no hay ubicación
+                modoTransporte = "";
+                document.getElementById("modo-viaje").value = "";
+                document.getElementById("info-ruta").style.display = "none";
+                directionsRenderer.setDirections({routes: []});
+                
+                Swal.fire({
+                    icon: "warning",
+                    title: "Falta tu ubicación",
+                    text: "Ingresa una dirección o usa el GPS.",
+                    confirmButtonText: "OK",
+                    confirmButtonColor: "#524f7d"
+                });
                 return;
             }
 
             origen = await geocodificarDireccion(texto);
             if (!origen) {
-                Swal.fire("No encontrado", "No se pudo ubicar esa dirección dentro de Zacatecas capital.", "error");
+                // Reiniciar todo si no se encontró la dirección
+                modoTransporte = "";
+                document.getElementById("modo-viaje").value = "";
+                document.getElementById("info-ruta").style.display = "none";
+                directionsRenderer.setDirections({routes: []});
+                
+                Swal.fire({
+                    icon: "error",
+                    title: "No encontrado",
+                    text: "No se pudo ubicar esa dirección dentro de Zacatecas capital.",
+                    confirmButtonText: "OK",
+                    confirmButtonColor: "#524f7d"
+                });
                 return;
             }
         }
 
+        // Calcular ruta sin mostrar mensaje
         calcularRuta(modo);
     });
 });
@@ -274,6 +312,37 @@ function calcularRuta(modo) {
     border-color: #3f3d56 !important;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(63, 61, 86, 0.35);
+}
+
+.btn-regresar {
+    background-color: #524f7d;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    box-shadow: 0 2px 6px rgba(82, 79, 125, 0.3);
+}
+
+.btn-regresar:hover {
+    background-color: #3f3d56;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(63, 61, 86, 0.4);
+}
+
+.btn-regresar:active {
+    transform: translateY(0);
+}
+
+/* Responsivo - en móviles solo muestra el ícono */
+@media (max-width: 576px) {
+    .btn-regresar {
+        padding: 0.5rem 0.75rem;
+        min-width: 40px;
+    }
 }
 </style>
 <script src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&libraries=places&callback=initMap" async defer></script>
