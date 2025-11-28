@@ -20,10 +20,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-eg8(aipu8s^1)7e(+pgjw^yf*)9!f$u8+hx@@psm7f3y44_pu$'
+SECRET_KEY = 
 
 # API GOOGLE MAPS
-GOOGLE_MAPS_API_KEY = 
+GOOGLE_MAPS_API_KEY = 'AIzaSyBapzk98LfvARvDCxtWw2EE6gFIjT_B0jU'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -87,7 +87,12 @@ DATABASES = {
         'PASSWORD': os.environ.get('DB_ROOT_PASSWORD'),
         'HOST': os.environ.get('DB_HOST'),
         'PORT': '3306',
+        'OPTIONS': {
+        'charset': 'utf8mb4',
+        'use_unicode': True,
+        }
     }
+    
 }
 
 

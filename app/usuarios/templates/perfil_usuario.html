@@ -15,7 +15,7 @@
         {% endif %}
 
         {% if turista.usuario == request.user %}
-            <div class="notificaciones-wrapper">
+            <div class="perfil-notify-wrapper">
                 <button id="btn-notificaciones" class="btn btn-outline-secondary position-relative shadow-sm">
                     <i class="bi bi-bell" style="font-size: 1.6rem;"></i>
                     <span id="contador-notificaciones"
@@ -471,19 +471,24 @@ document.addEventListener('DOMContentLoaded', () => {
 .perfil-header {
     position: relative; 
 }
-.notificaciones-wrapper {
+/* ================================
+   CAMPANA - PERFIL
+================================ */
+.perfil-notify-wrapper {
     position: absolute;
-    top: -70px;
-    left: 1.5rem;
-    z-index: 1050;
+    top: -65px;
+    left: 0.5rem;     /* 👉 más a la izquierda */
+    z-index: 1500;
 }
 
 @media (max-width: 768px) {
-    .notificaciones-wrapper {
+    .perfil-notify-wrapper {
         top: 0.8rem;
-        right: 0.8rem;
+        left: 0.5rem;
+        z-index: 900;  /* Mantener debajo del menú móvil */
     }
 }
+
 
 .btn-outline-secondary {
     border: none;

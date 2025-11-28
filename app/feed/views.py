@@ -10,10 +10,11 @@ from .models import Fotografia, Publicacion, Like, Comentario, LugarTuristico, N
 from usuarios.models import Seguidor
 from django.views.decorators.http import require_POST, require_http_methods
 from django.http import JsonResponse
-from .places_api import buscar_lugares_zacatecas, categorizar_lugar
+from .places_api import  categorizar_lugar
 import requests
 from django.conf import settings
 import json
+import traceback
 
 @login_required
 def buscar_lugares(request):

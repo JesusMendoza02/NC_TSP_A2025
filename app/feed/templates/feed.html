@@ -5,7 +5,7 @@
 
 <div class="container my-4 position-relative">
     <!-- 🔔 CAMPANA DE NOTIFICACIONES (IZQUIERDA) -->
-    <div class="notificaciones-wrapper">
+    <div class="feed-notify-wrapper">
         <button id="btn-notificaciones" class="btn btn-outline-secondary position-relative shadow-sm">
             <i class="bi bi-bell" style="font-size: 1.6rem;"></i>
             <span id="contador-notificaciones"
@@ -343,19 +343,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- 🔹 Estilos -->
 <style>
-/* Campana (izquierda) */
-.notificaciones-wrapper {
+/* ================================
+   CAMPANA - FEED
+================================ */
+.feed-notify-wrapper {
     position: absolute;
     top: 1rem;
-    left: 1.5rem;
-    z-index: 1050;
+    left: 0.3rem;      /* 👉 más a la izquierda */
+    z-index: 1500;     /* por encima de contenido pero NO sobre el menú */
 }
+
 @media (max-width: 768px) {
-    .notificaciones-wrapper {
-        top: 0.8rem;
-        left: 0.8rem;
+    .feed-notify-wrapper {
+        top: 0.6rem;
+        left: 0.4rem;  /* Ajuste móvil */
+        z-index: 900;  /* por debajo del header móvil */
     }
 }
+
 .btn-outline-secondary {
     border: none;
     background-color: #fff;
